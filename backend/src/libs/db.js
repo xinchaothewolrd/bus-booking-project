@@ -17,6 +17,10 @@ export const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('Ket noi voi database thanh cong.');
+    // Tự động tạo bảng dựa trên các model (User, Session...) nếu chưa có
+    // Tắt alter: true vì nó tự động sinh quá nhiều index thừa gây lỗi "Too many keys" trên MySQL
+    await sequelize.sync();
+    console.log('Da dong bo cac table vao Database!');
   } catch (error) {
     console.log('Khong the ket noi voi database:', error);
     process.exit(1); // thoat chuong trinh neu ket noi that bai
