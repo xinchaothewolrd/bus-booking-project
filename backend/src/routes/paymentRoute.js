@@ -11,6 +11,7 @@ import {
   rejectPayment,
   refundPayment,
   getPaymentByBooking,
+  mockPayBooking,
 } from "../controllers/paymentController.js";
 import { protectedRoute, requireAdmin } from "../middlewares/authMiddleware.js";
 
@@ -39,5 +40,8 @@ router.post("/:id/reject", protectedRoute, requireAdmin, rejectPayment);
 
 // POST /api/payments/:id/refund — Hoàn tiền (Admin)
 router.post("/:id/refund", protectedRoute, requireAdmin, refundPayment);
+
+// POST /api/payments/:id/pay — Giả lập thanh toán (khách tự gọi, tự confirm)
+router.post("/:id/pay", protectedRoute, mockPayBooking);
 
 export default router;

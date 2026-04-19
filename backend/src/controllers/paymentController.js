@@ -228,6 +228,54 @@ export const getPaymentByBooking = async (req, res) => {
   }
 };
 
+// POST /api/payments/:id/pay — Giả lập thanh toán (khách tự gọi, hệ thống tự confirm)
+// Không cần admin approve, dùng cho môi trường dev/demo
+export const mockPayBooking = async (req, res) => {
+  try {
+    const payment = await Payment.findByPk(req.params.id);
+    if (!payment) return res.status(404).json({ message: "Thanh toán không tồn tại." });
+
+    if (payment.status === "success") {
+      return res.status(400).json({ message: "Đặt vé này đã được thanh toán rồi." });
+    }
+    if (payment.status === "refunded") {
+      return res.status(400).json({ message: "Thanh toán đã được hoàn tiền, không thể thanh toán lại." });
+    }
+    if (payment.status === "failed") {
+      return res.status(400).json({ message: "Thanh toán đã bị từ chối. Vui lòng liên hệ hỗ trợ." });
+    }
+
+    const { paymentMethod } = req.body;
+    if (paymentMethod && !VALID_METHODS.includes(paymentMethod)) {
+      return res.status(400).json({ message: `Phương thức không hợp lệ. Chọn: ${VALID_METHODS.join(", ")}` });
+    }
+
+    // Giả lập xử lý thanh toán (delay 1 giây cho có cảm giác)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Tự động confirm
+    payment.status = "success";
+    payment.paymentMethod = paymentMethod || payment.paymentMethod;
+    payment.transactionTime = new Date();
+    await payment.save();
+
+    // Cập nhật booking + ghế
+    await _confirmBookingAndSeats(payment.bookingId);
+
+    const updated = await Payment.findByPk(payment.id, {
+      include: [{ model: Booking, as: "Booking" }],
+    });
+
+    return res.status(200).json({
+      message: "✅ Thanh toán thành công! Đặt vé đã được xác nhận.",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Error mock paying:", error);
+    return res.status(500).json({ message: "Đã xảy ra lỗi khi xử lý thanh toán." });
+  }
+};
+
 // ─── Helper nội bộ ─────────────────────────────────────────────
 async function _confirmBookingAndSeats(bookingId) {
   const booking = await Booking.findByPk(bookingId, {
