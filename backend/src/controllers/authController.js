@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken"; // Import thư viện jsonwebtoken để tạo v
 import crypto from "crypto"; // Import thư viện crypto để tạo refresh token ngẫu nhiên
 import Session from "../models/Session.js"; // Import model Session để quản lý refresh token và phiên đăng nhập
 import { ref } from "process";
+import { Op } from "sequelize";
 const ACCESS_TOKEN_TTL = '30m'; // Thời gian sống của access token, ở đây là 30 phút, bạn có thể điều chỉnh tùy theo nhu cầu của mình
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // Thời gian sống của refresh token, ở đây là 14 ngày (14 ngày * 24 giờ * 60 phút * 60 giây * 1000 ms)
 
@@ -11,8 +12,8 @@ const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // Thời gian sống của 
 
 export const signUp = async (req, res) => {
   try {
-    const {username, password, email,phone, firstName, lastName } = req.body;
-    if (!username || !password || !email || !phone || !firstName || !lastName) {
+    const { password, email, phone, firstName, lastName } = req.body;
+    if ( !password || !email || !phone || !firstName || !lastName) {
       return res
       .status(400)
       .json({
@@ -22,14 +23,17 @@ export const signUp = async (req, res) => {
     // Kiểm tra xem username hoặc email đã tồn tại chưa
     const duplicate = await User.findOne({
       where: {
-        username: username,
+        [Op.or]: [
+          { email: email },
+          { phone: phone }
+        ]
       }
     });
     if (duplicate) {
       return res
       .status(409)
       .json({
-        message: "Username đã tồn tại."
+        message: "Email hoặc số điện thoại đã tồn tại."
       });
     }
     // Mã hóa mật khẩu
@@ -37,13 +41,12 @@ export const signUp = async (req, res) => {
 
     // Tạo user mới trong database
     await User.create({
-      username,
       hashedPassword,
       email,
       phone,
-      displayName: `${firstName} ${lastName}`,
-      role: "user", // Mặc định role là "user", bạn có thể thay đổi nếu muốn
-      status: "active", // Mặc định status là "active", bạn có thể thay đổi nếu muốn
+      fullName: `${firstName} ${lastName}`,
+      role: "customer", // Mặc định role là "customer"
+      status: "active",
     });
 
     // Trả về phản hồi thành công
@@ -57,19 +60,22 @@ export const signUp = async (req, res) => {
 
 export const signIn = async (req, res) => {
   try {
-    // lay username va password tu request body, ;ay input tu client gui len
-    const { username, password } = req.body;
-    if (!username || !password) {
+    // lay email hoặc phone va password tu request body, ;ay input tu client gui len
+    const { identity, password } = req.body;
+    if (!identity || !password) {
       return res
       .status(400)
       .json({
-        message: "Thiếu username hoặc password."
+        message: "Vui lòng nhập Email hoặc Số điện thoại và Mật khẩu."
       });
     }
     // tim user trong database theo username
     const user = await User.findOne({
       where: {
-        username: username,
+        [Op.or]: [
+          { email: identity },
+          { phone: identity }
+        ]
       }
     });
     if (!user) {
@@ -79,9 +85,8 @@ export const signIn = async (req, res) => {
         message: "Tên đăng nhập hoặc mật khẩu không đúng."
       });
     }
-    if (user.status === "inactive") {
-      return res.status(401).json({ message: "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết." });
-
+    if (user.status === "banned") {
+      return res.status(401).json({ message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với quản trị viên." });
     }
       // so sanh password tu request voi hashedPassword trong database
     const passwordCorrect = await bcrypt.compare(password, user.hashedPassword);
@@ -121,7 +126,7 @@ export const signIn = async (req, res) => {
     });
 
     // tra ve access token trong res
-    return res.status(200).json({ message: `User ${user.displayName} đăng nhập thành công.`, accessToken });
+    return res.status(200).json({ message: `Đăng nhập thành công. Chào mừng ${user.fullName}!`, accessToken });
 
 
 

@@ -1,5 +1,6 @@
 import { DataTypes, Op } from "sequelize";
 import sequelize from "../libs/db.js";
+import User from "./User.js";
 
 const Session = sequelize.define(
   "Session",
@@ -12,52 +13,42 @@ const Session = sequelize.define(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: "Users",
-        key: "id",
-      },
-      onDelete: "CASCADE", // xoá session khi user bị xoá
+      field: "user_id", // DB column: user_id
+      references: { model: User, key: "id" },
+      onDelete: "CASCADE",
     },
     refreshToken: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+      field: "refresh_token", // DB column: refresh_token
     },
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: "expires_at", // DB column: expires_at
     },
   },
   {
     timestamps: true,
-    // Scope để dễ dàng lấy các session còn hiệu lực
+    tableName: "sessions",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
     scopes: {
-      active:() => ({
+      active: () => ({
         where: {
-          expiresAt: {
-            [Op.gt]: new Date(),
-          },
+          expiresAt: { [Op.gt]: new Date() },
         },
       }),
     },
-    indexes: [
-      {
-        fields: ["userId"],
-      },
-    ], // Tạo index cho trường expiresAt để tối ưu việc tìm kiếm và xoá các session đã hết hạn
+    indexes: [{ fields: ["user_id"] }],
   }
 );
 
-
-// Hàm để xoá các session đã hết hạn, có thể được gọi định kỳ bằng cron job hoặc scheduler
 export const cleanupExpiredSessions = async () => {
   try {
     await Session.destroy({
-      where: {
-        expiresAt: {
-          [Op.lt]: new Date(),
-        },
-      },
+      where: { expiresAt: { [Op.lt]: new Date() } },
     });
     console.log("Expired sessions cleaned up successfully.");
   } catch (error) {
