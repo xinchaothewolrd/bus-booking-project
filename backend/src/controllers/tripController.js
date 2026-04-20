@@ -2,16 +2,19 @@ import Trip from "../models/Trip.js";
 import Route from "../models/Route.js";
 import Bus from "../models/Bus.js";
 import BusType from "../models/BusType.js";
+import RouteFare from "../models/RouteFare.js";
 
+// Lấy toàn bộ danh sách chuyến xe
 export const getAllTrips = async (req, res) => {
   try {
     const trips = await Trip.findAll({
-      // Moi luôn cấu trúc Tuyến Đường và Thông tin Xe ra để Frontend vẽ giao diện
       include: [
-        { model: Route, as: 'route' },
-        { model: Bus, as: 'bus' },
-        { model: BusType, as: 'busType' }
-      ]
+        { model: Route, as: "route" },
+        {
+          model: Bus, as: "bus",
+          include: [{ model: BusType, as: "busType" }], // Lấy thêm loại xe qua Bus
+        },
+      ],
     });
     return res.status(200).json(trips);
   } catch (error) {
@@ -20,14 +23,17 @@ export const getAllTrips = async (req, res) => {
   }
 };
 
+// Lấy 1 chuyến xe theo ID
 export const getTripById = async (req, res) => {
   try {
     const trip = await Trip.findByPk(req.params.id, {
       include: [
-        { model: Route, as: 'route' },
-        { model: Bus, as: 'bus' },
-        { model: BusType, as: 'busType' }
-      ]
+        { model: Route, as: "route" },
+        {
+          model: Bus, as: "bus",
+          include: [{ model: BusType, as: "busType" }],
+        },
+      ],
     });
     if (!trip) return res.status(404).json({ message: "Chuyến đi không tồn tại." });
     return res.status(200).json(trip);
@@ -37,64 +43,66 @@ export const getTripById = async (req, res) => {
   }
 };
 
+// Tạo chuyến xe mới
+// Lưu ý: giá vé không còn nằm ở trips, mà ở route_fares
 export const createTrip = async (req, res) => {
   try {
-    const { routeId, busTypeId, busId, departureTime, arrivalTimeExpected, price, status } = req.body;
-    
-    if (!routeId || !departureTime || !price) {
-      return res.status(400).json({ message: "Thiếu thông tin tuyến đường, giờ khởi hành hoặc giá vé." });
+    const { routeId, busId, departureTime, arrivalTimeExpected, status, cancelPolicy } = req.body;
+
+    if (!routeId || !departureTime) {
+      return res.status(400).json({ message: "Thiếu thông tin tuyến đường (routeId) hoặc giờ khởi hành (departureTime)." });
     }
 
     const newTrip = await Trip.create({
       routeId,
-      busTypeId,
-      busId,
+      busId: busId || null,
       departureTime,
-      arrivalTimeExpected,
-      price,
-      status: status || 'scheduled'
+      arrivalTimeExpected: arrivalTimeExpected || null,
+      status: status || "scheduled",
+      cancelPolicy: cancelPolicy || null,
     });
 
-    return res.status(201).json({ message: "Tạo chuyến đi thành công!", data: newTrip });
+    return res.status(201).json({ message: "Tạo chuyến xe thành công!", data: newTrip });
   } catch (error) {
     console.error("Lỗi tạo chuyến đi:", error);
     return res.status(500).json({ message: "Lỗi hệ thống." });
   }
 };
 
+// Cập nhật thông tin chuyến xe
 export const updateTrip = async (req, res) => {
   try {
-    const { routeId, busTypeId, busId, departureTime, arrivalTimeExpected, price, status } = req.body;
+    const { routeId, busId, departureTime, arrivalTimeExpected, status, cancelPolicy } = req.body;
     const trip = await Trip.findByPk(req.params.id);
 
     if (!trip) return res.status(404).json({ message: "Chuyến không tồn tại." });
 
     await trip.update({
       routeId,
-      busTypeId,
       busId,
       departureTime,
       arrivalTimeExpected,
-      price,
-      status
+      status,
+      cancelPolicy,
     });
 
     return res.status(200).json({ message: "Cập nhật thành công.", data: trip });
   } catch (error) {
-    console.error("Lỗi Cập nhật chuyến đi:", error);
+    console.error("Lỗi cập nhật chuyến đi:", error);
     return res.status(500).json({ message: "Lỗi hệ thống." });
   }
 };
 
+// Xóa chuyến xe
 export const deleteTrip = async (req, res) => {
   try {
     const trip = await Trip.findByPk(req.params.id);
     if (!trip) return res.status(404).json({ message: "Chuyến không tồn tại." });
 
     await trip.destroy();
-    return res.status(200).json({ message: "Xóa chuyến đi thành công." });
+    return res.status(200).json({ message: "Xóa chuyến xe thành công." });
   } catch (error) {
-    console.error("Lỗi Xóa chuyến đi:", error);
+    console.error("Lỗi xóa chuyến đi:", error);
     return res.status(500).json({ message: "Không thể xóa vì đã có vé được đặt." });
   }
 };

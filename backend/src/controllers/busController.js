@@ -5,7 +5,7 @@ import BusType from "../models/BusType.js";
 export const getAllBuses = async (req, res) => {
   try {
     const buses = await Bus.findAll({
-      include: [{ model: BusType, as: 'busType' }] // Moi luôn dữ liệu của bảng Loại Xe lên giao diện
+      include: [{ model: BusType, as: "busType" }],
     });
     return res.status(200).json(buses);
   } catch (error) {
@@ -18,10 +18,9 @@ export const getAllBuses = async (req, res) => {
 export const getBusById = async (req, res) => {
   try {
     const bus = await Bus.findByPk(req.params.id, {
-      include: [{ model: BusType, as: 'busType' }]
+      include: [{ model: BusType, as: "busType" }],
     });
     if (!bus) return res.status(404).json({ message: "Không tìm thấy xe này." });
-    
     return res.status(200).json(bus);
   } catch (error) {
     console.error("Lỗi khi lấy xe khách:", error);
@@ -32,36 +31,37 @@ export const getBusById = async (req, res) => {
 // Thêm xe khách mới
 export const createBus = async (req, res) => {
   try {
-    const { licensePlate, busTypeId, status, maintenanceNote } = req.body;
-    
+    const { licensePlate, busTypeId, driverName, status, maintenanceNote } = req.body;
+
     if (!licensePlate || !busTypeId) {
       return res.status(400).json({ message: "Biển số và Mã Loại Xe là bắt buộc." });
     }
 
-    // Kiểm tra xem Loại xe này có tồn tại không
+    // Kiểm tra loại xe có tồn tại không
     const busTypeExists = await BusType.findByPk(busTypeId);
     if (!busTypeExists) {
-      return res.status(404).json({ message: "Mã loại xe (busTypeId) không hợp lệ vì không tồn tại trong hệ thống." });
+      return res.status(404).json({ message: "Mã loại xe (busTypeId) không hợp lệ." });
     }
 
     const newBus = await Bus.create({
       licensePlate,
       busTypeId,
-      status: status || 'active',
-      maintenanceNote
+      driverName: driverName || null,
+      status: status || "active",
+      maintenanceNote: maintenanceNote || null,
     });
 
     return res.status(201).json({ message: "Nhập xe thành công!", data: newBus });
   } catch (error) {
     console.error("Lỗi khi tạo xe khách:", error);
-    return res.status(500).json({ message: "Lỗi tạo xe (Có thể do biển số đã bị trùng)." });
+    return res.status(500).json({ message: "Lỗi tạo xe (có thể do biển số đã bị trùng)." });
   }
 };
 
 // Cập nhật tình trạng xe
 export const updateBus = async (req, res) => {
   try {
-    const { licensePlate, busTypeId, status, maintenanceNote } = req.body;
+    const { licensePlate, busTypeId, driverName, status, maintenanceNote } = req.body;
     const bus = await Bus.findByPk(req.params.id);
 
     if (!bus) return res.status(404).json({ message: "Xe không tồn tại." });
@@ -69,14 +69,15 @@ export const updateBus = async (req, res) => {
     await bus.update({
       licensePlate,
       busTypeId,
+      driverName,
       status,
-      maintenanceNote
+      maintenanceNote,
     });
 
     return res.status(200).json({ message: "Đã cập nhật xe thành công.", data: bus });
   } catch (error) {
-    console.error("Lỗi khi update xe khách:", error);
-    return res.status(500).json({ message: "Lỗi update (Lưu ý biển số không được trùng xe khác)." });
+    console.error("Lỗi khi cập nhật xe khách:", error);
+    return res.status(500).json({ message: "Lỗi update (lưu ý biển số không được trùng xe khác)." });
   }
 };
 
