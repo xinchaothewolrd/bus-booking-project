@@ -1,40 +1,62 @@
-import jwt from "jsonwebtoken"; // Import thư viện jsonwebtoken để tạo và xác thực JWT
-import User from "../models/User.js"; // Import model User để truy xuất thông tin người dùng từ database
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
+// ─────────────────────────────────────────────
+// Middleware 1: protectedRoute
+// Xác thực JWT — mọi route cần đăng nhập đều dùng middleware này
+// ─────────────────────────────────────────────
 export const protectedRoute = async (req, res, next) => {
   try {
-    // Lấy token từ header Authorization
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(" ")[1]; // Token thường được gửi dưới dạng "Bearer <token value>"
+    const token = authHeader && authHeader.split(" ")[1];
     if (!token) {
       return res.status(401).json({ message: "Access Token không được cung cấp." });
     }
-    // xac nhan token hop le
+
     jwt.verify(token, process.env.ACESS_TOKEN_SECRET, async (err, decodedUser) => {
       if (err) {
-        console.error(err);
         return res.status(403).json({ message: "Access Token không hợp lệ hoặc đã hết hạn." });
       }
-    // lay user
+
       const user = await User.findByPk(decodedUser.userId, {
-        attributes: { exclude: ["hashedPassword"] }
-      }); // Tìm user trong database bằng ID được mã hóa trong token
+        attributes: { exclude: ["hashedPassword"] },
+      });
       if (!user) {
         return res.status(404).json({ message: "User không tồn tại." });
       }
-      // logic kiem tra status cua user
-      if (user.status === "inactive") {
-        return res.status(403).json({ message: "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết." });
+      if (user.status === "banned") {
+        return res.status(403).json({ message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
       }
 
-      // tra user ve req
       req.user = user;
-      next(); // Cho phép tiếp tục xử lý request trong route handler
-
+      next();
     });
-
   } catch (error) {
-    console.error("Loi khi xac minh jwt trong authMiddleware:", error);
-    return res.status(500).json({ message: "loi he thong" });
+    console.error("Lỗi xác minh token:", error);
+    return res.status(500).json({ message: "Lỗi hệ thống." });
   }
+};
+
+// ─────────────────────────────────────────────
+// Middleware 2: requireAdmin
+// Chỉ admin mới được truy cập
+// Phải dùng sau protectedRoute
+// ─────────────────────────────────────────────
+export const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này. Yêu cầu quyền Admin." });
+  }
+  next();
+};
+
+// ─────────────────────────────────────────────
+// Middleware 3: requireStaff
+// Admin và Nhân viên phòng vé đều được truy cập
+// Phải dùng sau protectedRoute
+// ─────────────────────────────────────────────
+export const requireStaff = (req, res, next) => {
+  if (!req.user || !["admin", "staff"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này. Yêu cầu quyền Staff hoặc Admin." });
+  }
+  next();
 };
