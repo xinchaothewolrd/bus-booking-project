@@ -3,7 +3,6 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken"; // Import thư viện jsonwebtoken để tạo và xác thực JWT
 import crypto from "crypto"; // Import thư viện crypto để tạo refresh token ngẫu nhiên
 import Session from "../models/Session.js"; // Import model Session để quản lý refresh token và phiên đăng nhập
-import { ref } from "process";
 import { Op } from "sequelize";
 const ACCESS_TOKEN_TTL = '30m'; // Thời gian sống của access token, ở đây là 30 phút, bạn có thể điều chỉnh tùy theo nhu cầu của mình
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // Thời gian sống của refresh token, ở đây là 14 ngày (14 ngày * 24 giờ * 60 phút * 60 giây * 1000 ms)
@@ -44,7 +43,7 @@ export const signUp = async (req, res) => {
       hashedPassword,
       email,
       phone,
-      fullName: `${firstName} ${lastName}`,
+      fullName: `${lastName} ${firstName}`,
       role: "customer", // Mặc định role là "customer"
       status: "active",
     });

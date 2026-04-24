@@ -1,39 +1,43 @@
-// RouteFare.js - Bảng giá vé cơ bản theo tuyến đường + loại xe
-// Ví dụ: Sài Gòn - Đà Lạt + Giường nằm = 300.000đ
 
 import { DataTypes } from "sequelize";
 import sequelize from "../libs/db.js";
+import Route from "./Route.js";
+import BusType from "./BusType.js";
 
-const RouteFare = sequelize.define(
-  "RouteFare",
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    routeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: "route_id",
-      references: { model: "routes", key: "id" },
-    },
-    busTypeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: "bus_type_id",
-      references: { model: "bus_types", key: "id" },
-    },
-    basePrice: {
-      type: DataTypes.DECIMAL(12, 2),
-      allowNull: false,
-      field: "base_price",
-    },
+// RouteFare - Giá vé gốc theo tuyến đường + loại xe
+// Mỗi cặp (route_id, bus_type_id) chỉ có 1 giá gốc (unique index trong DB)
+const RouteFare = sequelize.define("RouteFare", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
   },
-  {
-    timestamps: false,
-    tableName: "route_fares",
-  }
-);
+  routeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: "route_id",
+  },
+  busTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: "bus_type_id",
+  },
+  basePrice: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: false,
+    field: "base_price",
+    // VD: 300000 (300.000đ)
+  },
+}, {
+  tableName: "route_fares",
+  timestamps: false,
+});
+
+// Quan hệ
+RouteFare.belongsTo(Route,   { foreignKey: "route_id",    as: "route",   onDelete: "RESTRICT" });
+RouteFare.belongsTo(BusType, { foreignKey: "bus_type_id", as: "busType", onDelete: "RESTRICT" });
+Route.hasMany(RouteFare,     { foreignKey: "route_id",    as: "fares" });
+BusType.hasMany(RouteFare,   { foreignKey: "bus_type_id", as: "fares" });
+
 
 export default RouteFare;

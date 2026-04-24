@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from "cors";
 import dotenv from 'dotenv';
 import { connectDB } from './libs/db.js';
 import authRoute from './routes/authRoute.js';
@@ -16,6 +17,13 @@ import paymentRoute from './routes/paymentRoute.js';
 import './libs/setupAssociations.js';
 
 
+import busTypeRoute from './routes/busTypeRoute.js';
+import routeRoute from './routes/routeRoute.js';
+import busRoute from './routes/busRoute.js';
+import tripRoute from './routes/tripRoute.js';
+import tripSeatRoute from './routes/tripSeatRoute.js';
+import routeFareRoute from './routes/routeFareRoute.js';
+import priceRuleRoute from './routes/priceRuleRoute.js';
 dotenv.config();  // load bien moi truong tu file .env
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +31,12 @@ const PORT = process.env.PORT || 3000;
 // middleware
 app.use(express.json()); // hieu va doc duoc du lieu dang json tu client
 app.use(cookieparser()); // Sử dụng cookie-parser để có thể đọc và ghi cookie trong các route handler
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 //public routes
 app.use('/api/auth', authRoute); // Sử dụng route auth đã tạo
 //private routes
@@ -31,6 +45,15 @@ app.use('/api/users', protectedRoute, userRoute); // Sử dụng route user đã
 app.use('/api/bookings', bookingRoute);
 app.use('/api/tickets', ticketRoute);
 app.use('/api/payments', paymentRoute);
+
+// Routes của An (Bus Booking)
+app.use('/api/bus-types', protectedRoute, busTypeRoute); // Đã khóa bằng token (chỉ user đăng nhập mới xài được)
+app.use('/api/routes', protectedRoute, routeRoute); // Tuyến đường
+app.use('/api/buses', protectedRoute, busRoute); // Quản lý Xe Khách (bus)
+app.use('/api/trips', protectedRoute, tripRoute); // Quản lý Chuyến Đi (trips)
+app.use('/api/trip-seats', protectedRoute, tripSeatRoute); // Quản lý Ghế Ngồi (trip_seats)
+app.use('/api/route-fares', protectedRoute, routeFareRoute); // Bảng giá theo tuyến + loại xe
+app.use('/api/price-rules', protectedRoute, priceRuleRoute); // Luật tăng/giảm giá linh hoạt
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server dang chay tren cong ${PORT}`);

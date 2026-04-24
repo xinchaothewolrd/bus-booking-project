@@ -9,6 +9,7 @@ export const protectedRoute = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
+  
     if (!token) {
       return res.status(401).json({ message: "Access Token không được cung cấp." });
     }

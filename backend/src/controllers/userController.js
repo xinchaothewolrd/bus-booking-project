@@ -1,6 +1,7 @@
 export const authMe = async (req, res) => {
   try {
     const user = req.user; // Lấy thông tin người dùng đã được xác thực từ middleware
+    console.log("Authentication", user);
     return res.status(200).json({ user }); // Trả về thông tin người dùng trong phản hồi
   } catch (error) {
     console.error("Lỗi khi goi authtMe:", error);

@@ -1,70 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@theme {
+  --color-on-secondary-container: #c0d8e8;
+  --color-error-container: #3d1414;
+  --color-surface-container-low: #111828;
+  --color-on-error: #1a0000;
+  --color-secondary-fixed: #c0d8e8;
+  --color-error: #ff6b6b;
+  --color-secondary: #88b4cc;
+  --color-outline: #4a6070;
+  --color-primary-fixed-dim: #7dd3fc;
+  --color-on-primary-container: #c8eaff;
+  --color-inverse-primary: #0a4c6e;
+  --color-surface: #0f1524;
+  --color-secondary-container: #1a3a4e;
+  --color-on-secondary: #001f2e;
+  --color-tertiary: #c8a0f0;
+  --color-surface-container-lowest: #0a0e1a;
+  --color-on-primary-fixed: #001f2e;
+  --color-inverse-on-surface: #0a0e1a;
+  --color-secondary-fixed-dim: #88b4cc;
+  --color-surface-container-highest: #202c42;
+  --color-outline-variant: #2a3a48;
+  --color-on-surface-variant: #a0b4c4;
+  --color-on-primary: #001f2e;
+  --color-on-tertiary: #1a002e;
+  --color-surface-bright: #1a2438;
+  --color-on-tertiary-container: #e8d0ff;
+  --color-surface-tint: #7dd3fc;
+  --color-tertiary-container: #3d2060;
+  --color-tertiary-fixed: #e8d0ff;
+  --color-surface-container: #141c2e;
+  --color-on-secondary-fixed: #0d1f2b;
+  --color-surface-container-high: #1a2438;
+  --color-inverse-surface: #e0e8f0;
+  --color-primary-container: #0e4d6e;
+  --color-on-surface: #e0e8f0;
+  --color-on-primary-fixed-variant: #004d73;
+  --color-surface-variant: #1a2438;
+  --color-primary-fixed: #c8eaff;
+  --color-on-background: #e0e8f0;
+  --color-surface-dim: #0f1524;
+  --color-on-error-container: #ffb3b3;
+  --color-on-secondary-fixed-variant: #2a4a5e;
+  --color-tertiary-fixed-dim: #c8a0f0;
+  --color-primary: #7dd3fc;
+  --color-background: #0a0e1a;
+  --color-on-tertiary-fixed-variant: #4d2a73;
+  --color-on-tertiary-fixed: #1a002e;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #ffffff;
+  --font-headline: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --radius-default: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+@layer utilities {
+  .glass-panel {
+    background: rgba(15, 21, 36, 0.6);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(125, 211, 252, 0.15);
+    box-shadow: 0 0 40px rgba(10, 14, 26, 0.5);
+  }
+
+  .glass-card {
+    background: rgba(15, 21, 36, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(125, 211, 252, 0.1);
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+  }
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #a41a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-body);
 }

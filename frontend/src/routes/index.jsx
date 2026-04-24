@@ -11,10 +11,16 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
 import NotFound from "../pages/NotFound";
 
+// Import Auth
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         {/* LUỒNG CỦA USER: Dùng UserLayout */}
         <Route path="/" element={<UserLayout />}>
           <Route index element={<Home />} />
