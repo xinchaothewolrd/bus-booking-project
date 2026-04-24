@@ -1,0 +1,872 @@
+{
+  "info": {
+    "name": "Bus Booking API",
+    "_postman_id": "bus-booking-api-collection",
+    "description": "Collection test API cho Bus Booking System\n\n**Thứ tự test:**\n1. Auth → đăng ký + đăng nhập\n2. Booking → tạo booking (auto-tạo Payment + QR code)\n3. Payment → admin phê duyệt\n4. Ticket → xem vé, check-in\n\n**Lưu ý quan trọng:**\n- Phải có trip và trip_seat trong DB trước\n- Token thời hạn 30 phút, cần đăng nhập lại nếu hết hạn\n- Customer không xem được /bookings (admin only) → expect 403",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "bookingId", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "", "type": "string" },
+    { "key": "paymentId", "value": "", "type": "string" },
+    { "key": "qrCode", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "description": "Luồng Auth:\n1. signup → insert user (role=customer, status=active) vào DB\n2. signin → verify email/phone + bcrypt → trả về accessToken (30 phút) + set cookie refreshToken (14 ngày)\n3. signout → xóa session trong DB + clear cookie\n\nĐặc biệt:\n- signin dùng field 'identity' (không phải email/username) → tìm theo cả email lẫn phone\n- Token đặt trong header: Authorization: Bearer <token>\n- Staff/admin phải cập nhật role trong DB thủ công sau khi signup",
+      "item": [
+        {
+          "name": "1. Đăng ký tài khoản customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"firstName\": \"Nguyễn\",\n  \"lastName\": \"Văn A\",\n  \"email\": \"customer@test.com\",\n  \"phone\": \"0901234567\",\n  \"password\": \"123456\"\n}"
+            },
+            "description": "Response 204 No Content là thành công.\nKiểm tra validation: tất cả 5 field đều bắt buộc.\nEmail/phone trùng → 409 Conflict."
+          }
+        },
+        {
+          "name": "2. Đăng ký tài khoản staff",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"firstName\": \"Trần\",\n  \"lastName\": \"Thị Vé\",\n  \"email\": \"staff@test.com\",\n  \"phone\": \"0911111111\",\n  \"password\": \"123456\"\n}"
+            },
+            "description": "⚠️ Sau khi tạo xong, vào DB Workbench chạy:\nUPDATE users SET role='staff' WHERE email='staff@test.com';\n\nRoute này không nhận role trong body (mặc định luôn là 'customer')."
+          }
+        },
+        {
+          "name": "3. Đăng ký tài khoản admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"System\",\n  \"email\": \"admin@test.com\",\n  \"phone\": \"0900000000\",\n  \"password\": \"admin123\"\n}"
+            },
+            "description": "⚠️ Sau khi tạo xong, vào DB Workbench chạy:\nUPDATE users SET role='admin' WHERE email='admin@test.com';"
+          }
+        },
+        {
+          "name": "4. Đăng nhập (customer) → lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  console.log('✅ Customer token saved:', json.accessToken.slice(0, 30) + '...');",
+                  "} else {",
+                  "  console.log('❌ No token in response:', JSON.stringify(json));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"identity\": \"customer@test.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "description": "Field là 'identity' (không phải 'email').\nCó thể dùng email hoặc phone đều được.\nResponse: { message: '...', accessToken: '...' }\nrefreshToken được set trong HttpOnly cookie."
+          }
+        },
+        {
+          "name": "5. Đăng nhập (admin) → lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  console.log('✅ Admin token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"identity\": \"admin@test.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "6. Đăng nhập (staff) → lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  console.log('✅ Staff token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"identity\": \"staff@test.com\",\n  \"password\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "7. Lấy thông tin user hiện tại (me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Xem thông tin user đang đăng nhập (lấy từ token)."
+          }
+        },
+        {
+          "name": "8. Đăng xuất",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/signout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signout"]
+            },
+            "description": "Xóa session (refreshToken) trong DB + clear cookie.\nResponse 204 No Content là thành công.\nKhông cần body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎫 Booking",
+      "description": "Luồng Booking:\n1. POST /bookings → Tạo booking (status=pending)\n   - Auto tạo Ticket với QR code 32 ký tự (SHA256)\n   - Auto tạo Payment (status=pending)\n   - Lock ghế 10 phút (tripSeat.status = 'pending')\n2. GET /bookings/:id → Xem chi tiết\n3. POST /bookings/:id/cancel → Hủy (phải > 24h trước giờ khởi hành)\n   - Nhả ghế về 'available'\n   - Vé chuyển 'cancelled'\n   - Nếu payment đã 'success' → chuyển 'refunded'\n4. GET /bookings → Danh sách tất cả (Admin only)\n5. DELETE /bookings/:id → Xóa (Admin, không xóa được booking đã paid)\n\nPHÂN QUYỀN:\n- POST /bookings: protectedRoute (mọi role đã login)\n- GET /bookings: protectedRoute + requireAdmin\n- DELETE: requireAdmin",
+      "item": [
+        {
+          "name": "1. Tạo booking mới (đặt vé)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('bookingId', String(json.data.id));",
+                  "  console.log('✅ Booking ID saved:', json.data.id);",
+                  "}",
+                  "if (json.data && json.data.Tickets && json.data.Tickets.length > 0) {",
+                  "  pm.collectionVariables.set('ticketId', String(json.data.Tickets[0].id));",
+                  "  pm.collectionVariables.set('qrCode', json.data.Tickets[0].qrCode);",
+                  "  console.log('✅ Ticket ID saved:', json.data.Tickets[0].id);",
+                  "  console.log('✅ QR Code saved:', json.data.Tickets[0].qrCode);",
+                  "}",
+                  "if (json.data && json.data.Payment) {",
+                  "  pm.collectionVariables.set('paymentId', String(json.data.Payment.id));",
+                  "  console.log('✅ Payment ID saved:', json.data.Payment.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"userId\": 1,\n  \"tripId\": 1,\n  \"totalAmount\": 300000,\n  \"tickets\": [\n    {\n      \"tripSeatId\": 1,\n      \"passengerName\": \"Nguyễn Văn A\",\n      \"passengerPhone\": \"0901234567\"\n    }\n  ]\n}"
+            },
+            "description": "⚠️ Điều kiện:\n- userId phải tồn tại trong bảng users\n- tripId phải tồn tại, departureTime phải > NOW()\n- tripSeatId phải thuộc tripId đó, status='available'\n\nSau khi tạo thành công:\n- Booking status = 'pending'\n- TripSeat status = 'pending' (pending_until = now + 10 phút)\n- Ticket status = 'unused' (qrCode được sinh tự động)\n- Payment status = 'pending', method = 'cash'\n\nĐặt nhiều ghế cùng lúc:\n\"tickets\": [\n  { \"tripSeatId\": 1, \"passengerName\": \"Nguyễn Văn A\", \"passengerPhone\": \"0901234567\" },\n  { \"tripSeatId\": 2, \"passengerName\": \"Lê Thị B\", \"passengerPhone\": \"0909999999\" }\n]"
+          }
+        },
+        {
+          "name": "2. Lấy danh sách tất cả bookings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings?status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "pending | paid | cancelled" },
+                { "key": "userId", "value": "", "disabled": true, "description": "Filter theo userId" },
+                { "key": "tripId", "value": "", "disabled": true, "description": "Filter theo tripId" }
+              ]
+            },
+            "description": "⚠️ Admin only (requireAdmin).\nCustomer gọi route này → 403 Forbidden."
+          }
+        },
+        {
+          "name": "3. Lấy booking theo ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}"]
+            },
+            "description": "Mọi user đã login đều xem được (chỉ cần protectedRoute).\nResponse bao gồm: User, Tickets, Payment."
+          }
+        },
+        {
+          "name": "4. Lấy bookings của 1 user (phân loại)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/user/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "user", "1"]
+            },
+            "description": "Thay '1' bằng userId thực tế.\nResponse phân loại:\n- upcoming: paid + departureTime > now\n- completed: paid + departureTime <= now\n- cancelled: status = 'cancelled'"
+          }
+        },
+        {
+          "name": "5. Hủy booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "cancel"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "Điều kiện: departureTime phải > now + 24 giờ.\nNếu < 24h → 400: 'Đã qua thời gian hủy vé'.\nKhông cần body (hoặc gửi {} cũng được).\n\nSau khi hủy:\n- Booking status = 'cancelled'\n- Ticket status = 'cancelled'\n- TripSeat status = 'available' (nhả ghế)\n- Nếu payment.status = 'success' → chuyển thành 'refunded'"
+          }
+        },
+        {
+          "name": "6. Cập nhật booking (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"status\": \"paid\",\n  \"totalAmount\": 350000\n}"
+            },
+            "description": "⚠️ Admin only.\nChuyển trạng thái hợp lệ:\n- pending → paid, cancelled\n- paid → cancelled\n- cancelled → không được chuyển nữa"
+          }
+        },
+        {
+          "name": "7. Xóa booking (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}"]
+            },
+            "description": "⚠️ Admin only.\nKhông xóa được booking có status='paid' → hoàn tiền trước."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Payment",
+      "description": "Luồng Payment:\n- Payment được tạo TỰ ĐỘNG khi tạo booking (method='cash', status='pending')\n- Admin phê duyệt: POST /payments/:id/approve\n  → payment.status = 'success', booking.status = 'paid', seat.status = 'booked'\n- Admin từ chối: POST /payments/:id/reject\n  → payment.status = 'failed' (ghế vẫn giữ pending!)\n- Admin hoàn tiền: POST /payments/:id/refund\n  → payment.status = 'refunded', booking.status = 'cancelled', seat.status = 'available'\n\nPHÂN QUYỀN:\n- GET /payments/booking/:id: protectedRoute (mọi user)\n- Còn lại: requireAdmin",
+      "item": [
+        {
+          "name": "1. Lấy payment của booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.id) {",
+                  "  pm.collectionVariables.set('paymentId', String(json.id));",
+                  "  console.log('✅ Payment ID saved:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/payments/booking/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "booking", "{{bookingId}}"]
+            },
+            "description": "Lấy payment của booking cụ thể.\nResponse: payment object trực tiếp (không bọc trong data)."
+          }
+        },
+        {
+          "name": "2. Lấy tất cả payments (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/payments?status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "pending | success | failed | refunded" },
+                { "key": "paymentMethod", "value": "", "disabled": true, "description": "momo | zalo_pay | bank_transfer | cash | card" },
+                { "key": "bookingId", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy payment theo ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Phê duyệt payment (Admin) → booking = paid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "approve"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "⚠️ Admin only. Payment phải đang ở status='pending'.\n\nSau khi approve:\n- payment.status = 'success'\n- payment.transactionTime = NOW()\n- booking.status = 'paid'\n- tripSeat.status = 'booked' (lock vĩnh viễn)\n\nKhông cần body (gửi {} là đủ)."
+          }
+        },
+        {
+          "name": "5. Từ chối payment (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "reject"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "⚠️ Admin only. Payment phải đang ở status='pending'.\n\nSau khi reject:\n- payment.status = 'failed'\n- Booking vẫn 'pending', ghế vẫn 'pending' (không tự nhả)\n\nKhông cần body."
+          }
+        },
+        {
+          "name": "6. Hoàn tiền (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "refund"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"refundReason\": \"Khách yêu cầu hủy chuyến\"\n}"
+            },
+            "description": "⚠️ Admin only. Payment phải đang ở status='success'.\n\nSau khi refund:\n- payment.status = 'refunded'\n- booking.status = 'cancelled'\n- ticket.status = 'cancelled'\n- tripSeat.status = 'available' (nhả ghế)\n\nBody refundReason là optional (controller không dùng nhưng nên gửi để log)."
+          }
+        },
+        {
+          "name": "7. Cập nhật payment thủ công (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"status\": \"success\",\n  \"transactionTime\": \"2026-04-19T10:00:00.000Z\"\n}"
+            },
+            "description": "⚠️ Admin only.\nChuyển trạng thái hợp lệ:\n- pending → success, failed\n- success → refunded\n- failed → pending\n- refunded → không được chuyển\n\nNếu status='success': tự động _confirmBookingAndSeats (booking=paid, seat=booked)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎟️ Ticket",
+      "description": "Luồng Ticket:\n- Ticket được tạo TỰ ĐỘNG cùng với booking (không cần tạo riêng)\n- QR code 32 ký tự uppercase (SHA256 hash)\n\nCác route:\n- GET /tickets/booking/:bookingId → Xem vé điện tử (user đã login)\n- GET /tickets/check/:qrCode → Tìm vé theo QR (staff/admin)\n- PATCH /tickets/:id/checkin → Check-in hành khách (staff/admin)\n- GET /tickets → Danh sách tất cả (admin only)\n- GET /tickets/:id → Chi tiết 1 vé (admin only)\n\nPHÂN QUYỀN:\n- /booking/:bookingId: protectedRoute\n- /check/:qrCode và /:id/checkin: requireStaff (staff + admin)\n- Còn lại: requireAdmin",
+      "item": [
+        {
+          "name": "1. Xem vé điện tử của booking",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/booking/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "booking", "{{bookingId}}"]
+            },
+            "description": "Response đầy đủ:\n- booking.id, status, totalAmount, createdAt\n- tripInfo: departureTime, arrivalTimeExpected\n- payment: method, status, amount, transactionTime\n- tickets[]: id, passengerName, passengerPhone, seatNumber, qrCode, ticketStatus\n- qrCodeValid: false nếu booking đã cancelled"
+          }
+        },
+        {
+          "name": "2. Lấy tất cả tickets (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets"],
+              "query": [
+                { "key": "bookingId", "value": "{{bookingId}}", "disabled": true },
+                { "key": "tripSeatId", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy ticket theo ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Cập nhật thông tin hành khách trên vé (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"passengerName\": \"Nguyễn Văn B\",\n  \"passengerPhone\": \"0908888888\"\n}"
+            },
+            "description": "Chỉ cập nhật được passengerName và passengerPhone.\nKhông cập nhật được status hay qrCode qua route này."
+          }
+        },
+        {
+          "name": "5. Xóa ticket (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}"]
+            },
+            "description": "Chỉ xóa được vé nếu booking.status='pending'.\nBooking đã 'paid' hoặc 'cancelled' → không xóa được."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Staff - Check-in Hành Khách",
+      "description": "Quy trình check-in (dành cho staff/admin):\n1. Đăng nhập bằng tài khoản staff\n2. Dùng QR code từ vé để tìm vé: GET /tickets/check/:qrCode\n3. Xác nhận check-in: PATCH /tickets/:id/checkin\n\nĐiều kiện checkin:\n- booking.status = 'paid' (đã thanh toán)\n- ticket.status = 'unused' (chưa check-in)\n- Nếu ticket.status = 'used' → báo đã check-in rồi\n- Nếu ticket.status = 'cancelled' → không được check-in",
+      "item": [
+        {
+          "name": "1. Tìm vé theo QR Code (dùng biến tự động)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/check/{{qrCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "check", "{{qrCode}}"]
+            },
+            "description": "{{qrCode}} được lưu tự động sau khi tạo booking.\nResponse trả về:\n- ticket.id, qrCode, status, passengerName, passengerPhone, seatNumber\n- booking.id, status, tripId, departureTime, arrivalTimeExpected"
+          }
+        },
+        {
+          "name": "2. Tìm vé theo QR Code (nhập thủ công)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/check/PASTE_YOUR_QR_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "check", "PASTE_YOUR_QR_HERE"]
+            },
+            "description": "Thay 'PASTE_YOUR_QR_HERE' bằng mã QR thực tế.\nQR Code format: 32 ký tự hex uppercase (ví dụ: A1B2C3D4E5F6...)"
+          }
+        },
+        {
+          "name": "3. Check-in hành khách (unused → used)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}/checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}", "checkin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "⚠️ Yêu cầu: booking phải status='paid' (đã thanh toán).\nCập nhật ticket.status: 'unused' → 'used'.\nResponse có checkedInBy = tên + role của staff thực hiện.\n\nKhông cần body (gửi {} là đủ)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 Test Phân Quyền (Role-based Access Control)",
+      "description": "Các test kiểm tra middleware hoạt động đúng không:\n- protectedRoute: verify JWT, tìm user trong DB\n- requireAdmin: chỉ role='admin'\n- requireStaff: role='admin' hoặc 'staff'",
+      "item": [
+        {
+          "name": "1. Customer thử vào GET /bookings (Admin only) → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            },
+            "description": "Đăng nhập bằng customer → gọi route này.\nExpect: 403 Forbidden + message: 'Yêu cầu quyền Admin'"
+          }
+        },
+        {
+          "name": "2. Không có token → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            },
+            "description": "Không gửi Authorization header.\nExpect: 401 Unauthorized + message: 'Access Token không được cung cấp'"
+          }
+        },
+        {
+          "name": "3. Token sai/hết hạn → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer invalid_token_here" }],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            },
+            "description": "Gửi token sai format hoặc đã hết hạn.\nExpect: 403 Forbidden + message: 'Access Token không hợp lệ hoặc đã hết hạn'"
+          }
+        },
+        {
+          "name": "4. Staff check-in (đúng quyền) → 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}/checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}", "checkin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "Đăng nhập bằng staff → check-in → phải được phép (200 OK)."
+          }
+        },
+        {
+          "name": "5. Customer thử check-in (sai quyền) → 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/{{ticketId}}/checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "{{ticketId}}", "checkin"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "Đăng nhập bằng customer → check-in → phải nhận 403.\nMessage: 'Yêu cầu quyền Staff hoặc Admin'"
+          }
+        },
+        {
+          "name": "6. Customer thử POST /payments (Admin only) → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"bookingId\": 1,\n  \"amount\": 300000,\n  \"paymentMethod\": \"cash\"\n}"
+            },
+            "description": "Đăng nhập bằng customer → tạo payment trực tiếp → phải nhận 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Luồng Test Đầy Đủ (End-to-End)",
+      "description": "Chạy theo đúng thứ tự này để test toàn bộ hệ thống:\n\n[Bước 1] Auth: Đăng ký + set role trong DB + Đăng nhập\n[Bước 2] Booking: Tạo booking (dùng customer token)\n[Bước 3] Payment: Admin approve payment\n[Bước 4] Ticket: Staff quét QR + check-in\n\n⚠️ Cần seed data trước:\nINSERT INTO trips (route_id, bus_id, departure_time, arrival_time_expected, status)\nVALUES (1, 1, '2026-12-01 08:00:00', '2026-12-01 14:00:00', 'scheduled');\n\nINSERT INTO trip_seats (trip_id, seat_number, status)\nVALUES (1, 'A01', 'available'), (1, 'A02', 'available');",
+      "item": [
+        {
+          "name": "[E2E-1] Signup customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth", "signup"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Customer\",\n  \"email\": \"testcustomer@demo.com\",\n  \"phone\": \"0912345678\",\n  \"password\": \"Test@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[E2E-2] Signin customer → lưu token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) { pm.collectionVariables.set('accessToken', json.accessToken); console.log('✅ Token saved'); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/signin", "host": ["{{baseUrl}}"], "path": ["auth", "signin"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"identity\": \"testcustomer@demo.com\",\n  \"password\": \"Test@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[E2E-3] Tạo booking (2 ghế) → lưu bookingId, ticketId, qrCode, paymentId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('bookingId', String(json.data.id)); }",
+                  "if (json.data && json.data.Tickets && json.data.Tickets.length > 0) {",
+                  "  pm.collectionVariables.set('ticketId', String(json.data.Tickets[0].id));",
+                  "  pm.collectionVariables.set('qrCode', json.data.Tickets[0].qrCode);",
+                  "}",
+                  "if (json.data && json.data.Payment) { pm.collectionVariables.set('paymentId', String(json.data.Payment.id)); }",
+                  "console.log('Response:', JSON.stringify(json.data?.id, null, 2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/bookings", "host": ["{{baseUrl}}"], "path": ["bookings"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"userId\": 1,\n  \"tripId\": 1,\n  \"totalAmount\": 600000,\n  \"tickets\": [\n    {\n      \"tripSeatId\": 1,\n      \"passengerName\": \"Nguyễn Văn A\",\n      \"passengerPhone\": \"0901111111\"\n    },\n    {\n      \"tripSeatId\": 2,\n      \"passengerName\": \"Trần Thị B\",\n      \"passengerPhone\": \"0902222222\"\n    }\n  ]\n}"
+            },
+            "description": "⚠️ Sửa userId, tripId, tripSeatId cho đúng với DB của bạn."
+          }
+        },
+        {
+          "name": "[E2E-4] Xem vé điện tử",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["tickets", "booking", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "[E2E-5] Admin - Approve payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/payments/{{paymentId}}/approve", "host": ["{{baseUrl}}"], "path": ["payments", "{{paymentId}}", "approve"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            },
+            "description": "⚠️ Đổi sang admin token trước!"
+          }
+        },
+        {
+          "name": "[E2E-6] Staff - Tìm vé bằng QR",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/check/{{qrCode}}", "host": ["{{baseUrl}}"], "path": ["tickets", "check", "{{qrCode}}"] },
+            "description": "⚠️ Đổi sang staff token trước!"
+          }
+        },
+        {
+          "name": "[E2E-7] Staff - Check-in hành khách",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/checkin", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "checkin"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
