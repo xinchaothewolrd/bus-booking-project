@@ -3,7 +3,6 @@ import useAuthStore from "../../store/useAuthStore";
 
 export default function UserHeader() {
   const user = useAuthStore((s) => s.user);
-  console.log(user)
   const navigate = useNavigate();
   return (
     <nav className="fixed top-0 w-full z-50 bg-[#0a0e1a]/60 backdrop-blur-lg border-b border-sky-400/10 shadow-[0_0_30px_rgba(125,211,252,0.05)]">

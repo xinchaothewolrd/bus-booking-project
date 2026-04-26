@@ -15,6 +15,12 @@ import NotFound from "../pages/NotFound";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 
+import ManageRoutes  from "../pages/admin/ManageRoutes";
+import ManageTrips from "../pages/admin/ManageTrips";
+import ManageSeats from "../pages/admin/ManageSeats";
+import ManageBusTypes from "../pages/admin/ManageBusTypes";
+import ManageBookings from "../pages/admin/ManageBookings";
+import Statistics from "../pages/admin/Statistics";
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -32,6 +38,12 @@ export default function AppRouter() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<ManageUsers />} />
+          <Route path="routes" element={<ManageRoutes />} />
+          <Route path="trips" element={<ManageTrips />} />
+          <Route path="seats" element={<ManageSeats />} />
+          <Route path="bus-types" element={<ManageBusTypes />} />
+          <Route path="bookings" element={<ManageBookings />} />
+          <Route path="statistics" element={<Statistics />} />
         </Route>
 
         {/* Bắt mấy thằng gõ bậy bạ URL */}

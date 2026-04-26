@@ -2,13 +2,11 @@ import axios from "axios";
 import useAuthStore from "../store/useAuthStore";
 
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000/api",
-  withCredentials: true, // gửi cookie refreshToken
+  baseURL: "http://localhost:3000/api",
+  withCredentials: true,
 });
 
-// 🔥 REQUEST interceptor: gắn accessToken
+// 🔥 request: gắn token
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
 
@@ -19,39 +17,43 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 🔥 RESPONSE interceptor: xử lý 401 → refresh
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthRoute =
+      originalRequest.url.includes("/auth/signin") ||
+      originalRequest.url.includes("/auth/signup");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRoute // 🔥 thêm điều kiện này
+    ) {
       originalRequest._retry = true;
 
       try {
-        // 🔥 gọi refresh (cookie tự gửi)
         const res = await axios.post(
-          "/auth/refresh",
+          "http://localhost:3000/api/auth/refresh",
           {},
           { withCredentials: true }
         );
 
         const newToken = res.data.accessToken;
 
-        // 🔥 cập nhật lại store
         useAuthStore.getState().setAuth(newToken, null);
 
-        // 🔥 gắn lại token mới
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-        return api(originalRequest); // gọi lại request cũ
+        return api(originalRequest);
       } catch (err) {
-        // refresh fail → logout
         useAuthStore.getState().logout();
         window.location.href = "/login";
       }
     }
 
+    // 🔥 luôn trả lỗi về component
     return Promise.reject(error);
   }
 );

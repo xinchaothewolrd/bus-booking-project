@@ -28,21 +28,34 @@ export default function LoginForm() {
   });
 
   const onSubmit = async ({ identifier, password }) => {
-    try {
-      const res = await signin({ identity: identifier, password });
-      const { accessToken } = res.data;
-      setAuth(accessToken, null);
-      await fetchMe();
+  try {
+    const res = await signin({ identity: identifier, password });
 
-      toast.success("Đăng nhập thành công");
+    const { accessToken } = res.data;
+    setAuth(accessToken, null);
+
+    // gọi me và lấy user trực tiếp
+    await fetchMe();
+    const user = useAuthStore.getState().user;
+
+    toast.success("Đăng nhập thành công");
+    console.log(user)
+
+    if (user?.role === "admin") {
+      navigate("/admin");
+    } else {
       navigate("/");
-      
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message || err.message || "Lỗi khi đăng nhập";
-      toast.error(msg);
     }
-  };
+
+  } catch (err) {
+    console.log("LOGIN ERROR:", err);
+
+    const msg =
+      err?.response?.data?.message || err.message || "Lỗi khi đăng nhập";
+
+    toast.error(msg);
+  }
+};
 
   return (
     <div className="glass-panel rounded-xl p-8 md:p-10 flex flex-col items-center">

@@ -16,7 +16,7 @@ const schema = z.object({
     .min(9, "Số điện thoại không hợp lệ")
     .regex(/^[0-9+\s]+$/, "Số điện thoại không hợp lệ"),
   email: z.string().email("Email không hợp lệ"),
-  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  password: z.string().min(5, "Mật khẩu tối thiểu 5 ký tự"),
 });
 
 export default function RegisterForm() {

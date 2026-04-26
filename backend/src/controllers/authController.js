@@ -154,3 +154,52 @@ try {
   return res.status(500).json({ message: "Đã xảy ra lỗi khi đăng xuất." });
 }
 };
+
+export const refreshToken = async (req, res) => {
+  try {
+    // Lấy refresh token từ cookie
+    const token = req.cookies?.refreshToken;
+    if (!token) {
+      return res.status(401).json({ message: "Không tìm thấy refresh token. Vui lòng đăng nhập lại." });
+    }
+
+    // Tìm session trong database theo refresh token
+    const session = await Session.findOne({
+      where: { refreshToken: token }
+    });
+
+    if (!session) {
+      return res.status(401).json({ message: "Refresh token không hợp lệ. Vui lòng đăng nhập lại." });
+    }
+
+    // Kiểm tra refresh token còn hạn không
+    if (new Date() > new Date(session.expiresAt)) {
+      // Token hết hạn → xóa session cũ khỏi DB
+      await session.destroy();
+      res.clearCookie("refreshToken");
+      return res.status(401).json({ message: "Refresh token đã hết hạn. Vui lòng đăng nhập lại." });
+    }
+
+    // Tìm user tương ứng với session
+    const user = await User.findByPk(session.userId);
+    if (!user) {
+      return res.status(401).json({ message: "Không tìm thấy người dùng. Vui lòng đăng nhập lại." });
+    }
+
+    if (user.status === "banned") {
+      return res.status(401).json({ message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với quản trị viên." });
+    }
+
+    // Tạo access token mới
+    const accessToken = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.ACESS_TOKEN_SECRET,
+      { expiresIn: ACCESS_TOKEN_TTL }
+    );
+
+    return res.status(200).json({ accessToken });
+  } catch (error) {
+    console.error("Lỗi khi refresh token:", error);
+    return res.status(500).json({ message: "Đã xảy ra lỗi khi làm mới token." });
+  }
+};
