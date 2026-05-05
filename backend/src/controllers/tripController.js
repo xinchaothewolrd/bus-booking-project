@@ -2,7 +2,6 @@ import Trip from "../models/Trip.js";
 import Route from "../models/Route.js";
 import Bus from "../models/Bus.js";
 import BusType from "../models/BusType.js";
-import RouteFare from "../models/RouteFare.js";
 
 // Lấy toàn bộ danh sách chuyến xe
 export const getAllTrips = async (req, res) => {

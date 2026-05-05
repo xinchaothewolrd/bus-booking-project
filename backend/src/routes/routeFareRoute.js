@@ -6,13 +6,14 @@ import {
   updateRouteFare,
   deleteRouteFare,
 } from "../controllers/routeFareController.js";
+import { requireAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/",     getAllRouteFares);    // Lấy toàn bộ bảng giá
-router.get("/:id",  getRouteFareById);   // Lấy 1 mức giá
-router.post("/",    createRouteFare);    // Tạo mức giá mới (Admin)
-router.put("/:id",  updateRouteFare);    // Cập nhật mức giá (Admin)
-router.delete("/:id", deleteRouteFare); // Xóa mức giá (Admin)
+router.get("/",     getAllRouteFares);                   // Ai cũng xem được
+router.get("/:id",  getRouteFareById);                  // Ai cũng xem được
+router.post("/",    requireAdmin, createRouteFare);      // Chỉ Admin
+router.put("/:id",  requireAdmin, updateRouteFare);      // Chỉ Admin
+router.delete("/:id", requireAdmin, deleteRouteFare);    // Chỉ Admin
 
 export default router;

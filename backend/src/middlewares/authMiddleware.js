@@ -38,3 +38,12 @@ export const protectedRoute = async (req, res, next) => {
     return res.status(500).json({ message: "loi he thong" });
   }
 };
+
+// Middleware kiểm tra quyền Admin
+// Phải đặt SAU protectedRoute vì cần req.user đã được gắn
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này. Chỉ Admin mới được phép." });
+  }
+  next();
+};

@@ -6,16 +6,15 @@ import {
   updateBusType,
   deleteBusType
 } from '../controllers/busTypeController.js';
-
-// Import middleware nếu bạn muốn chặn quyền admin (chưa dùng tạm thời)
-// import { protectedRoute } from '../middlewares/authMiddleware.js';
+import { requireAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', createBusType);          // Tạo loại xe mới
-router.get('/', getAllBusTypes);          // Lấy danh sách toàn bộ loại xe
-router.get('/:id', getBusTypeById);       // Lấy 1 loại xe cụ thể
-router.put('/:id', updateBusType);        // Cập nhật loại xe
-router.delete('/:id', deleteBusType);     // Xóa loại xe
+router.get('/',     getAllBusTypes);                   // Ai cũng xem được
+router.get('/:id',  getBusTypeById);                  // Ai cũng xem được
+router.post('/',    requireAdmin, createBusType);      // Chỉ Admin
+router.put('/:id',  requireAdmin, updateBusType);      // Chỉ Admin
+router.delete('/:id', requireAdmin, deleteBusType);    // Chỉ Admin
 
 export default router;
+

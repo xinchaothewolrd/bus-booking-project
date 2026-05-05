@@ -6,13 +6,14 @@ import {
   updateBus, 
   deleteBus 
 } from '../controllers/busController.js';
+import { requireAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', createBus);
-router.get('/', getAllBuses);
-router.get('/:id', getBusById);
-router.put('/:id', updateBus);
-router.delete('/:id', deleteBus);
+router.get('/',     getAllBuses);                 // Ai cũng xem được
+router.get('/:id',  getBusById);                 // Ai cũng xem được
+router.post('/',    requireAdmin, createBus);     // Chỉ Admin
+router.put('/:id',  requireAdmin, updateBus);     // Chỉ Admin
+router.delete('/:id', requireAdmin, deleteBus);   // Chỉ Admin
 
 export default router;
