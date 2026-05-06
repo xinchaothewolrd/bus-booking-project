@@ -4,13 +4,18 @@ import {
   getAllTrips, 
   getTripById, 
   updateTrip, 
-  deleteTrip 
+  deleteTrip,
+  searchTrips 
 } from '../controllers/tripController.js';
 
 const router = express.Router();
 
 router.post('/', createTrip);
 router.get('/', getAllTrips);
+
+// 🔥 đặt search lên trên
+router.get('/search', searchTrips);
+
 router.get('/:id', getTripById);
 router.put('/:id', updateTrip);
 router.delete('/:id', deleteTrip);

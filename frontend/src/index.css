@@ -66,11 +66,12 @@
     box-shadow: 0 0 40px rgba(10, 14, 26, 0.5);
   }
 
-  .glass-card {
-    background: rgba(15, 21, 36, 0.6);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(125, 211, 252, 0.1);
-  }
+.glass-card {
+  background: rgba(30, 40, 60, 0.5); /* sáng hơn */
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(125, 211, 252, 0.15); /* viền cũng có thể sáng hơn chút */
+}
+
 
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;

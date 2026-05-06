@@ -119,8 +119,8 @@ export const signIn = async (req, res) => {
     //tra refresh token ve trong cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true, // Chỉ cho phép cookie được truy cập thông qua HTTP(S), không cho phép JavaScript truy cập (tăng cường bảo mật)
-      secure: process.env.NODE_ENV === 'production', // Chỉ gửi cookie qua HTTPS khi ở môi trường production
-      sameSite: 'none',  // backend, front end deploy tren 2 domain khac nhau, nen set sameSite: 'none' va secure: true
+      secure: false, // Chỉ gửi cookie qua HTTPS khi ở môi trường production
+      sameSite: 'lax',  // backend, front end deploy tren 2 domain khac nhau, nen set sameSite: 'none' va secure: true
       maxAge: REFRESH_TOKEN_TTL, // Thời gian sống của cookie, nên trùng với thời gian sống của refresh token
     });
 

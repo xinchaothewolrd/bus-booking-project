@@ -18,7 +18,7 @@ export const connectDB = async () => {
     await sequelize.authenticate();
     console.log('Ket noi voi database thanh cong.');
 
-     await sequelize.sync({ alter: true }); // 👈 THÊM DÒNG NÀY
+     await sequelize.sync(); // 👈 THÊM DÒNG NÀY
   } catch (error) {
     console.log('Khong the ket noi voi database:', error);
     process.exit(1); // thoat chuong trinh neu ket noi that bai

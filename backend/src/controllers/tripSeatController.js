@@ -1,5 +1,6 @@
 import TripSeat from "../models/TripSeat.js";
 import Trip from "../models/Trip.js";
+import sequelize from "../libs/db.js";
 
 export const getAllTripSeats = async (req, res) => {
   try {
@@ -90,4 +91,111 @@ export const deleteTripSeat = async (req, res) => {
     console.error("Lỗi xóa ghế:", error);
     return res.status(500).json({ message: "Lỗi hệ thống." });
   }
+};
+
+export const holdSeats = async (req, res) => {
+  const { tripId, seatNumbers } = req.body;
+
+  if (!tripId || !seatNumbers?.length) {
+    return res.status(400).json({ message: "Thiếu tripId hoặc seatNumbers" });
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    const seats = await TripSeat.findAll({
+      where: {
+        tripId,
+        seatNumber: seatNumbers,
+      },
+      lock: t.LOCK.UPDATE, // 🔥 khóa row tránh race condition
+      transaction: t,
+    });
+
+    if (seats.length !== seatNumbers.length) {
+      throw new Error("Có ghế không tồn tại");
+    }
+
+    const now = new Date();
+
+    for (const seat of seats) {
+      // ❌ nếu đã booked → chặn
+      if (seat.status === "booked") {
+        throw new Error(`Ghế ${seat.seatNumber} đã được đặt`);
+      }
+
+      // ❌ nếu đang pending nhưng chưa hết hạn → chặn
+      if (
+        seat.status === "pending" &&
+        seat.pendingUntil &&
+        new Date(seat.pendingUntil) > now
+      ) {
+        throw new Error(`Ghế ${seat.seatNumber} đang được giữ`);
+      }
+    }
+
+    // ✅ update tất cả ghế
+    const pendingUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+    await TripSeat.update(
+      {
+        status: "pending",
+        pendingUntil,
+      },
+      {
+        where: {
+          tripId,
+          seatNumber: seatNumbers,
+        },
+        transaction: t,
+      }
+    );
+
+    await t.commit();
+
+    return res.status(200).json({
+      message: "Giữ ghế thành công",
+      pendingUntil,
+    });
+  } catch (error) {
+    await t.rollback();
+    console.error("Lỗi hold ghế:", error);
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+export const releaseSeats = async (req, res) => {
+  const { tripId, seatNumbers } = req.body;
+
+  await TripSeat.update(
+    {
+      status: "available",
+      pendingUntil: null,
+    },
+    {
+      where: {
+        tripId,
+        seatNumber: seatNumbers,
+      },
+    }
+  );
+
+  return res.json({ message: "Đã trả ghế" });
+};
+
+export const autoReleaseSeats = async () => {
+  await TripSeat.update(
+    {
+      status: "available",
+      pendingUntil: null,
+    },
+    {
+      where: {
+        status: "pending",
+        pendingUntil: {
+          [Op.lt]: new Date(),
+        },
+      },
+    }
+  );
 };

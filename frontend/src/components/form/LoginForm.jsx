@@ -35,7 +35,7 @@ export default function LoginForm() {
     setAuth(accessToken, null);
 
     // gọi me và lấy user trực tiếp
-    await fetchMe();
+    await fetchMe(accessToken);
     const user = useAuthStore.getState().user;
 
     toast.success("Đăng nhập thành công");

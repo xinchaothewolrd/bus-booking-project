@@ -5,6 +5,7 @@ import {
   getTripSeatById, 
   updateTripSeat, 
   deleteTripSeat,
+  holdSeats,
   getSeatsByTripId // Import hàm load ghế theo chuyến
 } from '../controllers/tripSeatController.js';
 
@@ -15,6 +16,7 @@ router.get('/', getAllTripSeats);
 router.get('/:id', getTripSeatById);
 router.put('/:id', updateTripSeat);
 router.delete('/:id', deleteTripSeat);
+router.post("/hold", holdSeats);
 
 // API Mở rộng lấy riêng theo ID của Chuyến Đi (tripId)
 router.get('/trip/:tripId', getSeatsByTripId);
