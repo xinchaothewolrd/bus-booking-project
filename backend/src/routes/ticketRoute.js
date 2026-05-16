@@ -9,6 +9,7 @@ import {
   updateTicket,
   deleteTicket,
   getTicketsByBooking,
+  getTicketsByUser,
   getTicketByQrCode,
   checkInTicket,
 } from "../controllers/ticketController.js";
@@ -24,6 +25,9 @@ router.post("/", protectedRoute, requireAdmin, createTicket);
 
 // GET /api/tickets/booking/:bookingId — Lấy vé điện tử của 1 booking (user đã đăng nhập)
 router.get("/booking/:bookingId", protectedRoute, getTicketsByBooking);
+
+// GET /api/tickets/user/:userId — Lấy tất cả vé của 1 user
+router.get("/user/:userId", protectedRoute, getTicketsByUser);
 
 // ─── STAFF ROUTES (Nhân viên phòng vé) ───────────────────────
 // GET /api/tickets/check/:qrCode — Tìm vé theo QR code (staff + admin)

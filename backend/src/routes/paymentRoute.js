@@ -3,6 +3,7 @@
 
 import express from "express";
 import {
+  createPaymentUrl,
   getAllPayments,
   createPayment,
   getPaymentById,
@@ -12,6 +13,7 @@ import {
   refundPayment,
   getPaymentByBooking,
   mockPayBooking,
+  vnpayReturn
 } from "../controllers/paymentController.js";
 import { protectedRoute, requireAdmin } from "../middlewares/authMiddleware.js";
 
@@ -19,10 +21,12 @@ const router = express.Router();
 
 // GET /api/payments — Lấy tất cả payments (Admin only)
 router.get("/", protectedRoute, requireAdmin, getAllPayments);
+router.get("/vnpay-return", vnpayReturn);
 
 // POST /api/payments — Tạo payment mới (Admin)
 router.post("/", protectedRoute, requireAdmin, createPayment);
 
+router.post("/create_url", protectedRoute, createPaymentUrl);
 // GET /api/payments/booking/:bookingId — Lấy payment của 1 booking (user đã đăng nhập)
 router.get("/booking/:bookingId", protectedRoute, getPaymentByBooking);
 

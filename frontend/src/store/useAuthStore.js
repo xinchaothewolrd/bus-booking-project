@@ -35,7 +35,7 @@ const useAuthStore = create((set) => ({
     }
   },
 
-  logout: () =>
+  logOut: () =>
     set({
       accessToken: null,
       user: null,

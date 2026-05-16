@@ -12,6 +12,8 @@ import ManageUsers from "../pages/admin/ManageUsers";
 import NotFound from "../pages/NotFound";
 import SearchPage from "../pages/user/SearchPage";
 import BookingPage from "../pages/user/Booking";
+import PaymentResult from "../pages/user/PaymentResult";
+import TicketPage from "../pages/user/TicketPage";
 
 // Import Auth
 import Login from "../pages/auth/Login";
@@ -34,9 +36,10 @@ export default function AppRouter() {
           <Route index element={<Home />} />
           <Route path="about" element={<About />} />
           <Route path="search" element={<SearchPage />} />
-          
+          <Route path="ticket" element={<TicketPage />} />
         </Route>
         <Route path="booking/:tripId" element={<BookingPage />} />
+        <Route path="payment-result" element={<PaymentResult />} />
 
         {/* LUỒNG CỦA ADMIN: Dùng AdminLayout */}
         {/* Thêm check Auth ở đây nếu cần bảo mật nhé, không là ai cũng mò vào được */}

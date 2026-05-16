@@ -42,6 +42,20 @@ const Ticket = sequelize.define(
         this.setDataValue("passengerPhone", value ? value.trim() : value);
       },
     },
+    pickupStopId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "pickup_stop_id",
+      references: { model: "route_stops", key: "id" },
+      onDelete: "SET NULL",
+    },
+    dropoffStopId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "dropoff_stop_id",
+      references: { model: "route_stops", key: "id" },
+      onDelete: "SET NULL",
+    },
     qrCode: {
       type: DataTypes.STRING(255),
       allowNull: true,

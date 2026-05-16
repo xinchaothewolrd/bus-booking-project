@@ -1,12 +1,166 @@
 // paymentController.js - Controller quản lý thanh toán
-
+import { VNPay, ignoreLogger } from 'vnpay';
 import Payment from "../models/Payment.js";
 import Booking from "../models/Booking.js";
 import Ticket from "../models/Ticket.js";
 import TripSeat from "../models/TripSeat.js";
 import Trip from "../models/Trip.js";
+import { sendTicketEmail } from "../services/emailService.js";
+import User from "../models/User.js"; // Import thêm User để lấy email
 
 const VALID_METHODS = ["momo", "zalo_pay", "bank_transfer", "cash", "card"];
+
+
+const vnpay = new VNPay({
+    tmnCode: process.env.vnp_TmnCode,
+    secureSecret: process.env.vnp_HashSecret,
+    vnpayHost: 'https://sandbox.vnpayment.vn', // Môi trường test Sandbox
+    testMode: true, // Bật lên để test
+    hashAlgorithm: 'SHA512', // Chuẩn bảo mật mới nhất của VNPay
+    enableLog: true, 
+    loggerFn: ignoreLogger, 
+});
+
+export const createPaymentUrl = (req, res) => {
+    try {
+        const { bookingId, amount, bankCode } = req.body;
+        
+        // Lấy IP của khách (VNPay bắt buộc)
+        const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || '127.0.0.1';
+
+        // Gọi hàm build link của thư viện
+        const urlString = vnpay.buildPaymentUrl({
+            vnp_Amount: amount, // 
+            vnp_IpAddr: ipAddr,
+            vnp_TxnRef: bookingId.toString(), //
+            vnp_OrderInfo: `Thanh toan ve xe don hang ${bookingId}`,
+            vnp_OrderType: 'other',
+            vnp_ReturnUrl: process.env.vnp_ReturnUrl, 
+            vnp_Locale: 'vn', // Tiếng Việt
+            ...(bankCode && { vnp_BankCode: bankCode })
+        });
+
+        return res.status(200).json({ paymentUrl: urlString });
+
+    } catch (error) {
+        console.error("Lỗi đẻ link VNPay:", error);
+        return res.status(500).json({ message: "Sập nguồn lúc tạo link thanh toán!" });
+    }
+};
+
+export const vnpayReturn = async (req, res) => {
+    try {
+        // Hốt trọn chuỗi query param do React gửi lên
+        let vnp_Params = req.query;
+
+        // 1. Dùng thư viện xác thực chữ ký (Checksum) chống hacker fake URL
+        const isVerified = vnpay.verifyReturnUrl(vnp_Params);
+        
+        if (!isVerified) {
+            console.warn("💥 Phát hiện nghi vấn giả mạo chữ ký VNPay!");
+            return res.status(400).json({ 
+                success: false, 
+                message: "Chữ ký không hợp lệ hoặc dữ liệu bị can thiệp!" 
+            });
+        }
+
+        const bookingId = vnp_Params['vnp_TxnRef'];
+        const responseCode = vnp_Params['vnp_ResponseCode'];
+
+        // 2. Lấy thông tin thanh toán & Đặt vé ra
+        const payment = await Payment.findOne({ where: { bookingId } });
+        const booking = await Booking.findByPk(bookingId, {
+            include: [
+                { model: User, as: "User" },
+                { model: Ticket, as: "Tickets", include: [{ model: TripSeat, as: "Seat" }] },
+                { model: Trip, as: "Trip" }
+            ]
+        });
+
+        if (!booking || !payment) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Không tìm thấy đơn đặt vé tương ứng trong hệ thống." 
+            });
+        }
+
+        // 🔥 NẾU KHÁCH THANH TOÁN THÀNH CÔNG ('00')
+        if (responseCode === '00') {
+            // Tránh trường hợp React reload 2 lần gọi hàm lại làm gửi mail 2 lần
+            if (payment.status !== "success") {
+                // Cập nhật trạng thái Payment sang success
+                payment.status = "success";
+                payment.transactionTime = new Date();
+                await payment.save();
+
+                // Chốt đơn DB và update status ghế sang 'booked'
+                await _confirmBookingAndSeats(bookingId);
+                console.log(booking)
+                // 🚀 BẮN EMAIL CHO KHÁCH TẠI ĐÂY
+                if (booking.User && booking.User.email) {
+                    const seatList = booking.Tickets.map(t => t.Seat?.seatNumber).join(', ');
+
+                    const emailData = {
+                        toEmail: booking.User.email,
+                        passengerName: booking.Tickets[0]?.passengerName || booking.User.fullName,
+                        bookingCode: `OB-${booking.id}`,
+                        routeName: `Chuyến xe OceanBus #${booking.tripId}`, 
+                        departureTime: new Date(booking.Trip?.departureTime).toLocaleString('vi-VN'),
+                        seats: seatList,
+                        totalAmount: booking.totalAmount
+                    };
+
+                    // Bắn mail ngầm
+                    sendTicketEmail(emailData);
+                }
+            }
+
+            // 👉 TRẢ VỀ JSON CHO REACT XỬ LÝ GIAO DIỆN
+            return res.status(200).json({ 
+                success: true, 
+                message: "Thanh toán thành công. Đã chốt vé và gửi email." 
+            });
+
+        } else {
+            // 💥 NẾU GIAO DỊCH BỊ HỦY / THẤT BẠI
+            if (payment.status !== "failed") {
+                payment.status = "failed";
+                await payment.save();
+
+                booking.status = "cancelled";
+                await booking.save();
+
+                // Xả ghế trả lại cho hệ thống
+                if (booking.Tickets?.length > 0) {
+                    await Promise.all(
+                        booking.Tickets.map(async (ticket) => {
+                            ticket.status = "cancelled";
+                            await ticket.save();
+                            if (ticket.Seat) {
+                                ticket.Seat.status = "available";
+                                ticket.Seat.pendingUntil = null;
+                                await ticket.Seat.save();
+                            }
+                        })
+                    );
+                }
+            }
+
+            // 👉 TRẢ VỀ JSON BÁO XỊT CHO REACT
+            return res.status(200).json({ 
+                success: false, 
+                message: "Giao dịch không thành công hoặc bị hủy." 
+            });
+        }
+
+    } catch (error) {
+        console.error("Lỗi xử lý API vnpayReturn:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Lỗi hệ thống khi xác thực thanh toán!" 
+        });
+    }
+};
 
 // GET /api/payments — Lấy tất cả payments (Admin)
 export const getAllPayments = async (req, res) => {

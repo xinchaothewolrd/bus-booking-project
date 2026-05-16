@@ -1,11 +1,13 @@
 // bookingController.js - Controller quản lý đặt vé
 import crypto from "crypto";
+import sequelize from "../libs/db.js";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 import Ticket from "../models/Ticket.js";
 import Payment from "../models/Payment.js";
 import Trip from "../models/Trip.js";
 import TripSeat from "../models/TripSeat.js";
+import RouteStop from "../models/RouteStop.js";
 
 // Helper: tạo QR code unique cho vé
 function generateQrCode(bookingId, ticketId) {
@@ -41,76 +43,111 @@ export const getAllBookings = async (req, res) => {
 
 // POST /api/bookings — Tạo booking mới
 // Body: { userId, tripId, totalAmount, tickets: [{tripSeatId, passengerName, passengerPhone}] }
+
 export const createBooking = async (req, res) => {
+  // 🔥 Khởi tạo khiên bảo vệ
+  const t = await sequelize.transaction();
+
   try {
     const { userId, tripId, totalAmount, tickets } = req.body;
 
-    if (!userId || !tripId || !totalAmount) {
-      return res.status(400).json({ message: "Vui lòng điền đầy đủ: userId, tripId, totalAmount" });
+    if (!userId || !tripId || !totalAmount || !tickets || !tickets.length) {
+      await t.rollback();
+      return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin!" });
     }
 
-    const user = await User.findByPk(userId);
-    if (!user) return res.status(404).json({ message: "User không tồn tại." });
+    const user = await User.findByPk(userId, { transaction: t });
+    if (!user) throw new Error("User không tồn tại.");
 
-    const trip = await Trip.findByPk(tripId);
-    if (!trip) return res.status(404).json({ message: "Chuyến xe không tồn tại." });
+    const trip = await Trip.findByPk(tripId, { transaction: t });
+    if (!trip) throw new Error("Chuyến xe không tồn tại.");
 
     const now = new Date();
     if (trip.departureTime <= now) {
-      return res.status(400).json({ message: "Chuyến xe này đã khởi hành. Vui lòng chọn chuyến khác." });
-    }
-
-    if (!tickets || !Array.isArray(tickets) || tickets.length === 0) {
-      return res.status(400).json({ message: "Vui lòng chọn ít nhất 1 ghế." });
+      throw new Error("Chuyến xe này đã khởi hành. Vui lòng chọn chuyến khác.");
     }
 
     const tripSeatIds = tickets.map((t) => t.tripSeatId);
-    const tripSeats = await TripSeat.findAll({ where: { id: tripSeatIds, tripId } });
+    
+    // 🔥 Thêm LOCK.UPDATE để chặn 2 thanh niên cùng lúc mua 1 ghế
+    const tripSeats = await TripSeat.findAll({ 
+      where: { id: tripSeatIds, tripId },
+      lock: t.LOCK.UPDATE,
+      transaction: t
+    });
 
     if (tripSeats.length !== tripSeatIds.length) {
-      return res.status(400).json({ message: "Một số ghế không tồn tại hoặc không thuộc chuyến này." });
+      throw new Error("Một số ghế không tồn tại hoặc không thuộc chuyến này.");
     }
 
-    const unavailableSeats = tripSeats.filter((s) => s.status !== "available");
-    if (unavailableSeats.length > 0) {
-      const seatNumbers = unavailableSeats.map((s) => s.seatNumber).join(", ");
-      return res.status(409).json({ message: `Ghế ${seatNumbers} không khả dụng. Vui lòng chọn ghế khác.` });
+    // 🔥 FIX LỖI TỰ BÓP: Chỉ chặn nếu ghế đã bị thằng khác Booked
+    const bookedSeats = tripSeats.filter((s) => s.status === "booked");
+    if (bookedSeats.length > 0) {
+      const seatNumbers = bookedSeats.map((s) => s.seatNumber).join(", ");
+      throw new Error(`Ghế ${seatNumbers} đã có người mua. Vui lòng chọn lại.`);
     }
 
-    // Tạo booking
-    const booking = await Booking.create({ userId, tripId, totalAmount, status: "pending" });
+    // Validate optional pickup/dropoff stop ids and that they belong to the trip's route
+    for (const tk of tickets) {
+      const { pickupStopId, dropoffStopId } = tk;
+      if (pickupStopId) {
+        const ps = await RouteStop.findByPk(pickupStopId, { transaction: t });
+        if (!ps) throw new Error("pickupStopId không tồn tại.");
+        if (ps.routeId !== trip.routeId) throw new Error("pickupStopId không thuộc tuyến của chuyến.");
+      }
+      if (dropoffStopId) {
+        const ds = await RouteStop.findByPk(dropoffStopId, { transaction: t });
+        if (!ds) throw new Error("dropoffStopId không tồn tại.");
+        if (ds.routeId !== trip.routeId) throw new Error("dropoffStopId không thuộc tuyến của chuyến.");
+      }
+    }
 
-    // Tạo tickets với QR code unique
-    const ticketData = tickets.map((ticket) => ({
-      bookingId: booking.id,
-      tripSeatId: ticket.tripSeatId,
-      passengerName: ticket.passengerName,
-      passengerPhone: ticket.passengerPhone,
-      status: "unused",
-    }));
-    const createdTickets = await Ticket.bulkCreate(ticketData, { returning: true });
+    // 1. Tạo booking
+    const booking = await Booking.create({ 
+      userId, tripId, totalAmount, status: "pending" 
+    }, { transaction: t });
 
-    // Gán QR code cho từng ticket (cần id nên phải update sau khi create)
-    await Promise.all(
-      createdTickets.map((t) => {
-        t.qrCode = generateQrCode(booking.id, t.id);
-        return t.save();
-      })
-    );
+    // 2. Gom data tạo tickets 1 lượt (Gen QR bằng tên ghế thay vì ID vé để né vòng lặp Update)
+    const ticketData = tickets.map((ticket) => {
+      const seatInfo = tripSeats.find(s => s.id === ticket.tripSeatId);
+      // Mã QR độc nhất vô nhị
+      const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const qrCode = `OB-${booking.id}-${seatInfo.seatNumber}-${randomStr}`;
 
-    // Lock ghế 10 phút
+      return {
+        bookingId: booking.id,
+        tripSeatId: ticket.tripSeatId,
+        passengerName: ticket.passengerName,
+        passengerPhone: ticket.passengerPhone,
+        pickupStopId: ticket.pickupStopId || null,
+        dropoffStopId: ticket.dropoffStopId || null,
+        qrCode: qrCode, 
+        status: "unused",
+      };
+    });
+
+    // 🚀 Insert phát một ăn luôn
+    await Ticket.bulkCreate(ticketData, { transaction: t });
+
+    // 3. Gia hạn thời gian khóa ghế thêm 10 phút để đi thanh toán
     const pendingUntil = new Date(now.getTime() + 10 * 60 * 1000);
-    await Promise.all(
-      tripSeats.map((seat) => {
-        seat.status = "pending";
-        seat.pendingUntil = pendingUntil;
-        return seat.save();
-      })
+    await TripSeat.update(
+      { status: "pending", pendingUntil: pendingUntil },
+      { where: { id: tripSeatIds }, transaction: t }
     );
 
-    // Tạo payment mặc định
-    await Payment.create({ bookingId: booking.id, amount: totalAmount, paymentMethod: "cash", status: "pending" });
+    // 4. Tạo payment mặc định
+    await Payment.create({ 
+      bookingId: booking.id, 
+      amount: totalAmount, 
+      paymentMethod: "cash", 
+      status: "pending" 
+    }, { transaction: t });
 
+    // ✅ Bấm nút Commit lưu toàn bộ vào DB
+    await t.commit();
+
+    // Khúc này query lại để trả về cho Frontend đẹp mắt (không cần cho vào transaction nữa)
     const fullBooking = await Booking.findByPk(booking.id, {
       include: [
         { model: User, as: "User", attributes: ["id", "fullName", "email"] },
@@ -124,9 +161,16 @@ export const createBooking = async (req, res) => {
       message: "Tạo đặt vé thành công. Quý khách có 10 phút để thanh toán.",
       data: fullBooking,
     });
+
   } catch (error) {
+    // 💥 Có biến là Rollback sạch sẽ không để lại rác
+    if (t && !t.finished) await t.rollback(); 
     console.error("Error creating booking:", error);
-    return res.status(500).json({ message: "Đã xảy ra lỗi khi tạo đặt vé." });
+    
+    // Khúc này bắt thông báo lỗi tao Throw ở trên ném về cho Client
+    return res.status(error.message.includes("Vui lòng") ? 400 : 500).json({ 
+      message: error.message || "Đã xảy ra lỗi khi tạo đặt vé." 
+    });
   }
 };
 
@@ -148,29 +192,84 @@ export const getBookingById = async (req, res) => {
   }
 };
 
-// PUT /api/bookings/:id — Cập nhật booking (Admin)
 export const updateBooking = async (req, res) => {
+  const t = await sequelize.transaction();
+
   try {
     const { id } = req.params;
     const { status, totalAmount } = req.body;
 
-    const booking = await Booking.findByPk(id);
-    if (!booking) return res.status(404).json({ message: "Đặt vé không tồn tại." });
+    // 🔥 Móc thêm Tickets để lấy danh sách ID ghế của cái đơn này
+    const booking = await Booking.findByPk(id, {
+      include: [{ model: Ticket, as: "Tickets" }],
+      transaction: t,
+    });
+
+    if (!booking) {
+      await t.rollback();
+      return res.status(404).json({ message: "Đặt vé không tồn tại." });
+    }
 
     const validTransitions = {
       pending: ["paid", "cancelled"],
-      paid: ["cancelled"],
+      paid: ["cancelled"], // Ví dụ: Admin đồng ý hoàn tiền hủy vé
       cancelled: [],
     };
 
-    if (status && (!validTransitions[booking.status] || !validTransitions[booking.status].includes(status))) {
-      return res.status(400).json({ message: `Không thể chuyển từ '${booking.status}' sang '${status}'.` });
+    // Nếu có yêu cầu đổi trạng thái và trạng thái mới khác trạng thái hiện tại
+    if (status && booking.status !== status) {
+      if (!validTransitions[booking.status] || !validTransitions[booking.status].includes(status)) {
+        await t.rollback();
+        return res.status(400).json({ message: `Không thể chuyển từ '${booking.status}' sang '${status}'.` });
+      }
+
+      // Chuẩn bị danh sách ID ghế
+      const seatIds = booking.Tickets.map(ticket => ticket.tripSeatId);
+
+      if (status === "paid") {
+        // 1. Chốt cứng ghế, không cho auto-release nhả ra nữa
+        await TripSeat.update(
+          { status: "booked", pendingUntil: null },
+          { where: { id: seatIds }, transaction: t }
+        );
+        // 2. Báo Payment thành công
+        await Payment.update(
+          { status: "success" },
+          { where: { bookingId: booking.id }, transaction: t }
+        );
+      } 
+      else if (status === "cancelled") {
+        // 1. Nhả ghế ra cho khách khác mua
+        await TripSeat.update(
+          { status: "available", pendingUntil: null },
+          { where: { id: seatIds }, transaction: t }
+        );
+        // 2. Vô hiệu hóa mớ vé QR Code
+        await Ticket.update(
+          { status: "cancelled" },
+          { where: { bookingId: booking.id }, transaction: t }
+        );
+        // 3. Đánh dấu Payment là failed (hoặc refunded)
+        await Payment.update(
+          { status: "failed" }, 
+          { where: { bookingId: booking.id }, transaction: t }
+        );
+      }
+
+      // Đổi status của booking
+      booking.status = status;
     }
 
-    if (status) booking.status = status;
+    // Nếu Admin lén sửa giá (Ví dụ giảm giá cho người quen)
     if (totalAmount) booking.totalAmount = totalAmount;
-    await booking.save();
+    
+    // Lưu booking
+    await booking.save({ transaction: t });
 
+    // Khúc này êm xui rồi thì chốt hạ
+    await t.commit();
+
+    // Móc lại data mới nhất để trả về cho Frontend hiển thị
     const updated = await Booking.findByPk(id, {
       include: [
         { model: User, as: "User" },
@@ -178,8 +277,10 @@ export const updateBooking = async (req, res) => {
         { model: Payment, as: "Payment" },
       ],
     });
+
     return res.status(200).json({ message: "Cập nhật đặt vé thành công.", data: updated });
   } catch (error) {
+    await t.rollback();
     console.error("Error updating booking:", error);
     return res.status(500).json({ message: "Đã xảy ra lỗi khi cập nhật đặt vé." });
   }

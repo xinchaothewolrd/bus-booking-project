@@ -7,3 +7,6 @@ export const signin = (data) => {
   return api.post('/auth/signin', data)
 };
 
+export const logout = () => {
+  return api.post('/auth/signout')
+}

@@ -28,7 +28,7 @@ router.get("/user/:userId", protectedRoute, getBookingsByUser);
 router.get("/:id", protectedRoute, getBookingById);
 
 // PUT /api/bookings/:id — Cập nhật booking (Admin)
-router.put("/:id", protectedRoute, requireAdmin, updateBooking);
+router.put("/:id", protectedRoute, updateBooking);
 
 // DELETE /api/bookings/:id — Xóa booking (Admin only)
 router.delete("/:id", protectedRoute, requireAdmin, deleteBooking);

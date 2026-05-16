@@ -6,6 +6,7 @@ import Booking from "../models/Booking.js";
 import TripSeat from "../models/TripSeat.js";
 import Trip from "../models/Trip.js";
 import Payment from "../models/Payment.js";
+import RouteStop from "../models/RouteStop.js";
 
 // GET /api/tickets — Lấy tất cả tickets (Admin)
 export const getAllTickets = async (req, res) => {
@@ -20,6 +21,8 @@ export const getAllTickets = async (req, res) => {
       include: [
         { model: Booking, as: "Booking", attributes: ["id", "userId", "tripId", "status", "totalAmount"] },
         { model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
       ],
       order: [["created_at", "DESC"]],
     });
@@ -33,7 +36,7 @@ export const getAllTickets = async (req, res) => {
 // POST /api/tickets — Tạo ticket mới (Admin)
 export const createTicket = async (req, res) => {
   try {
-    const { bookingId, tripSeatId, passengerName, passengerPhone } = req.body;
+    const { bookingId, tripSeatId, passengerName, passengerPhone, pickupStopId, dropoffStopId } = req.body;
 
     if (!bookingId || !tripSeatId) {
       return res.status(400).json({ message: "Vui lòng điền đầy đủ: bookingId, tripSeatId" });
@@ -42,8 +45,24 @@ export const createTicket = async (req, res) => {
     const booking = await Booking.findByPk(bookingId);
     if (!booking) return res.status(404).json({ message: "Đặt vé không tồn tại." });
 
+    // Validate optional pickup/dropoff stop ids
+    if (pickupStopId) {
+      const ps = await RouteStop.findByPk(pickupStopId);
+      if (!ps) return res.status(404).json({ message: "pickupStopId không tồn tại." });
+    }
+    if (dropoffStopId) {
+      const ds = await RouteStop.findByPk(dropoffStopId);
+      if (!ds) return res.status(404).json({ message: "dropoffStopId không tồn tại." });
+    }
+
     const ticket = await Ticket.create({
-      bookingId, tripSeatId, passengerName, passengerPhone, status: "unused",
+      bookingId,
+      tripSeatId,
+      passengerName,
+      passengerPhone,
+      pickupStopId: pickupStopId || null,
+      dropoffStopId: dropoffStopId || null,
+      status: "unused",
     });
 
     // Gán QR code
@@ -67,6 +86,8 @@ export const getTicketById = async (req, res) => {
       include: [
         { model: Booking, as: "Booking", attributes: ["id", "userId", "tripId", "status", "totalAmount"] },
         { model: TripSeat, as: "Seat" },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
       ],
     });
     if (!ticket) return res.status(404).json({ message: "Vé không tồn tại." });
@@ -81,13 +102,31 @@ export const getTicketById = async (req, res) => {
 export const updateTicket = async (req, res) => {
   try {
     const { id } = req.params;
-    const { passengerName, passengerPhone } = req.body;
+    const { passengerName, passengerPhone, pickupStopId, dropoffStopId } = req.body;
 
     const ticket = await Ticket.findByPk(id);
     if (!ticket) return res.status(404).json({ message: "Vé không tồn tại." });
 
     if (passengerName) ticket.passengerName = passengerName.trim();
     if (passengerPhone) ticket.passengerPhone = passengerPhone.trim();
+    if (pickupStopId !== undefined) {
+      if (pickupStopId) {
+        const ps = await RouteStop.findByPk(pickupStopId);
+        if (!ps) return res.status(404).json({ message: "pickupStopId không tồn tại." });
+        ticket.pickupStopId = pickupStopId;
+      } else {
+        ticket.pickupStopId = null;
+      }
+    }
+    if (dropoffStopId !== undefined) {
+      if (dropoffStopId) {
+        const ds = await RouteStop.findByPk(dropoffStopId);
+        if (!ds) return res.status(404).json({ message: "dropoffStopId không tồn tại." });
+        ticket.dropoffStopId = dropoffStopId;
+      } else {
+        ticket.dropoffStopId = null;
+      }
+    }
     await ticket.save();
 
     const updated = await Ticket.findByPk(id, { include: [{ model: Booking, as: "Booking" }] });
@@ -127,7 +166,11 @@ export const getTicketsByBooking = async (req, res) => {
         {
           model: Ticket,
           as: "Tickets",
-          include: [{ model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] }],
+          include: [
+            { model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] },
+            { model: RouteStop, as: "PickupStop" },
+            { model: RouteStop, as: "DropoffStop" },
+          ],
         },
         { model: Payment, as: "Payment" },
         { model: Trip, as: "Trip" },
@@ -169,6 +212,8 @@ export const getTicketsByBooking = async (req, res) => {
         seatStatus: ticket.Seat?.status ?? null,
         qrCode: ticket.qrCode,
         ticketStatus: ticket.status,
+        pickupStop: ticket.PickupStop ? { id: ticket.PickupStop.id, name: ticket.PickupStop.stopName, address: ticket.PickupStop.address } : null,
+        dropoffStop: ticket.DropoffStop ? { id: ticket.DropoffStop.id, name: ticket.DropoffStop.stopName, address: ticket.DropoffStop.address } : null,
         createdAt: ticket.createdAt,
       })),
       ticketCount: booking.Tickets.length,
@@ -179,6 +224,29 @@ export const getTicketsByBooking = async (req, res) => {
   } catch (error) {
     console.error("Error getting booking tickets:", error);
     return res.status(500).json({ message: "Đã xảy ra lỗi khi lấy vé của đặt vé." });
+  }
+};
+
+// GET /api/tickets/user/:userId — Lấy tất cả tickets của 1 user
+export const getTicketsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) return res.status(400).json({ message: "Thiếu userId." });
+
+    const tickets = await Ticket.findAll({
+      include: [
+        { model: Booking, as: "Booking", where: { userId }, attributes: ["id", "userId", "tripId", "status", "totalAmount"] },
+        { model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json(tickets);
+  } catch (error) {
+    console.error("Error getting tickets by user:", error);
+    return res.status(500).json({ message: "Đã xảy ra lỗi khi lấy vé của user." });
   }
 };
 
@@ -199,6 +267,8 @@ export const getTicketByQrCode = async (req, res) => {
           include: [{ model: Trip, as: "Trip" }],
         },
         { model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
       ],
     });
 
@@ -215,6 +285,8 @@ export const getTicketByQrCode = async (req, res) => {
         passengerName: ticket.passengerName,
         passengerPhone: ticket.passengerPhone,
         seatNumber: ticket.Seat?.seatNumber ?? null,
+        pickupStop: ticket.PickupStop ? { id: ticket.PickupStop.id, name: ticket.PickupStop.stopName, address: ticket.PickupStop.address } : null,
+        dropoffStop: ticket.DropoffStop ? { id: ticket.DropoffStop.id, name: ticket.DropoffStop.stopName, address: ticket.DropoffStop.address } : null,
         booking: {
           id: ticket.Booking?.id,
           status: ticket.Booking?.status,
@@ -244,6 +316,8 @@ export const checkInTicket = async (req, res) => {
           include: [{ model: Trip, as: "Trip" }],
         },
         { model: TripSeat, as: "Seat" },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
       ],
     });
 

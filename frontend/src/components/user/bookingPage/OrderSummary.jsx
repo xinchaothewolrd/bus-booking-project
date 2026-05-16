@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 // Import SummaryRow vào đây
 
 function SummaryRow({ label, value, isPrimary = false, isAccent = false }) {
@@ -18,7 +18,7 @@ function SummaryRow({ label, value, isPrimary = false, isAccent = false }) {
   );
 }
 
-export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPrice }) {
+export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPrice, onCheckout, isSubmitting }) {
 
   const route = trip?.route;
   const bus = trip?.bus;
@@ -43,13 +43,13 @@ export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPric
       <h3 className="text-lg font-bold text-on-surface mb-5">Tóm tắt đơn hàng</h3>
       <div className="space-y-3 text-sm mb-6">
         <SummaryRow label="Loại xe" value={bus?.busType?.typeName || "—"} isPrimary />
-
+{/* 
         <SummaryRow 
           label="Lộ trình" 
           value={`${route?.departureLocation || ""} → ${route?.arrivalLocation || ""}`} 
         />
 
-        <SummaryRow label="Thời gian" value={formattedTime} />
+        <SummaryRow label="Thời gian" value={formattedTime} /> */}
 
         <SummaryRow 
           label="Ghế đã chọn" 
@@ -74,15 +74,25 @@ export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPric
       </div>
 
       <motion.button 
-        disabled={selectedSeats.length === 0}
+        onClick={onCheckout}
+        disabled={selectedSeats.length === 0 || isSubmitting}
         className={`w-full h-14 rounded-xl flex items-center justify-center gap-2 font-black text-lg transition-all
-          ${selectedSeats.length === 0
-            ? "bg-gray-400 cursor-not-allowed"
+          ${(selectedSeats.length === 0 || isSubmitting)
+            ? "bg-gray-400 cursor-not-allowed text-white/50"
             : "bg-primary text-on-primary hover:brightness-110"}
         `}
       >
-        Tiếp tục thanh toán
-        <ArrowRight size={20} />
+        {isSubmitting ? (
+          <>
+            <Loader2 className="animate-spin" size={20} />
+            Đang xử lý...
+          </>
+        ) : (
+          <>
+            Tiếp tục thanh toán
+            <ArrowRight size={20} />
+          </>
+        )}
       </motion.button>
       
       <p className="text-[11px] text-center text-on-surface-variant mt-5 leading-relaxed">

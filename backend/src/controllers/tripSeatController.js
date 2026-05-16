@@ -94,9 +94,15 @@ export const deleteTripSeat = async (req, res) => {
 };
 
 export const holdSeats = async (req, res) => {
-  const { tripId, seatNumbers } = req.body;
+  // 🔥 Đổi const thành let để có thể gán lại giá trị
+  let { tripId, seatNumbers } = req.body;
 
-  if (!tripId || !seatNumbers?.length) {
+  // 🔥 BẢO KÊ: Nếu thằng Frontend lỡ gửi chuỗi "A3" thay vì mảng ["A3"], tự động bọc mảng cho nó!
+  if (typeof seatNumbers === 'string') {
+    seatNumbers = [seatNumbers];
+  }
+
+  if (!tripId || !seatNumbers || !seatNumbers.length) {
     return res.status(400).json({ message: "Thiếu tripId hoặc seatNumbers" });
   }
 
@@ -108,23 +114,23 @@ export const holdSeats = async (req, res) => {
         tripId,
         seatNumber: seatNumbers,
       },
-      lock: t.LOCK.UPDATE, // 🔥 khóa row tránh race condition
+      lock: t.LOCK.UPDATE, 
       transaction: t,
     });
 
+    // 🔥 Chèn quả log này vào để lần sau lỡ có lỗi mày nhìn Terminal là biết ngay ai sai
     if (seats.length !== seatNumbers.length) {
+      console.log(`[DEBUG LỖI GHẾ] DB tìm thấy: ${seats.length}. Frontend đòi: ${seatNumbers.length}. Data gửi lên:`, seatNumbers);
       throw new Error("Có ghế không tồn tại");
     }
 
     const now = new Date();
 
     for (const seat of seats) {
-      // ❌ nếu đã booked → chặn
       if (seat.status === "booked") {
         throw new Error(`Ghế ${seat.seatNumber} đã được đặt`);
       }
 
-      // ❌ nếu đang pending nhưng chưa hết hạn → chặn
       if (
         seat.status === "pending" &&
         seat.pendingUntil &&
@@ -134,7 +140,7 @@ export const holdSeats = async (req, res) => {
       }
     }
 
-    // ✅ update tất cả ghế
+    // update tất cả ghế
     const pendingUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
 
     await TripSeat.update(

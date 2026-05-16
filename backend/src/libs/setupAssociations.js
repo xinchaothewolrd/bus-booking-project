@@ -8,6 +8,8 @@ import Trip from "../models/Trip.js";
 import TripSeat from "../models/TripSeat.js";
 import RouteFare from "../models/RouteFare.js";
 import PriceRule from "../models/PriceRule.js";
+import Route from "../models/Route.js";
+import RouteStop from "../models/RouteStop.js";
 
 // ===== User Associations =====
 User.hasMany(Booking, { foreignKey: "userId", as: "Bookings", onDelete: "CASCADE" });
@@ -40,7 +42,17 @@ TripSeat.hasMany(Ticket,  { foreignKey: "tripSeatId", as: "Tickets", onDelete: "
 // ===== RouteFare Associations =====
 // (route_fares has no direct model associations needed for existing features)
 
+// ===== Route & RouteStop Associations =====
+Route.hasMany(RouteStop, { foreignKey: "routeId", as: "Stops", onDelete: "CASCADE" });
+RouteStop.belongsTo(Route, { foreignKey: "routeId", as: "Route" });
+
+// RouteStop <-> Ticket (pickup/dropoff)
+RouteStop.hasMany(Ticket, { foreignKey: "pickupStopId", as: "PickupTickets" });
+RouteStop.hasMany(Ticket, { foreignKey: "dropoffStopId", as: "DropoffTickets" });
+Ticket.belongsTo(RouteStop, { foreignKey: "pickupStopId", as: "PickupStop" });
+Ticket.belongsTo(RouteStop, { foreignKey: "dropoffStopId", as: "DropoffStop" });
+
 // ===== PriceRule Associations =====
 // (price_rules has no direct model associations needed for existing features)
 
-export { User, Booking, Ticket, Payment, Session, Trip, TripSeat, RouteFare, PriceRule };
+export { User, Booking, Ticket, Payment, Session, Trip, TripSeat, RouteFare, PriceRule, Route, RouteStop };
