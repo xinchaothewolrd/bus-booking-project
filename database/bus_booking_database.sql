@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS `trip_seats`;
 DROP TABLE IF EXISTS `trips`;
 DROP TABLE IF EXISTS `buses`;
 DROP TABLE IF EXISTS `bus_types`;
+DROP TABLE IF EXISTS `route_stops`;
 DROP TABLE IF EXISTS `routes`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `sessions`;
@@ -67,6 +68,20 @@ CREATE TABLE `routes` (
   `duration_est`       time         DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `route_stops` (
+  `id`                    int          NOT NULL AUTO_INCREMENT,
+  `route_id`              int          NOT NULL,
+  `stop_name`             varchar(255) NOT NULL COMMENT '"Bến xe Mỹ Đình", "Bến xe Miền Tây"',
+  `address`               varchar(255) DEFAULT NULL,
+  `stop_type`             varchar(50)  NOT NULL COMMENT 'pickup, dropoff, both',
+  `stop_order`            int          NOT NULL COMMENT 'Thứ tự dừng: 1, 2, 3...',
+  `arrive_offset_minutes` int          NOT NULL COMMENT 'Cách giờ xuất phát bao nhiêu phút',
+  PRIMARY KEY (`id`),
+  KEY `idx_route_stops_route` (`route_id`),
+  CONSTRAINT `route_stops_ibfk_1` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE `bus_types` (
   `id`          int         NOT NULL AUTO_INCREMENT,
@@ -182,12 +197,18 @@ CREATE TABLE `tickets` (
   `passenger_phone` varchar(20)  DEFAULT NULL,
   `qr_code`         varchar(255) DEFAULT NULL COMMENT 'Mã vé điện tử E-ticket',
   `status`          enum('unused','used','cancelled') NOT NULL DEFAULT 'unused',
+  `pickup_stop_id`  int          DEFAULT NULL COMMENT 'Khách lên xe ở đâu',
+  `dropoff_stop_id` int          DEFAULT NULL COMMENT 'Khách xuống xe ở đâu',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_trip_seat_id` (`trip_seat_id`) COMMENT '1 ghế chỉ map với 1 vé duy nhất',
   UNIQUE KEY `unique_qr_code` (`qr_code`),
   KEY `idx_ticket_booking` (`booking_id`),
+  KEY `idx_ticket_pickup` (`pickup_stop_id`),
+  KEY `idx_ticket_dropoff` (`dropoff_stop_id`),
   CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`booking_id`)   REFERENCES `bookings`   (`id`),
-  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`trip_seat_id`) REFERENCES `trip_seats`  (`id`)
+  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`trip_seat_id`) REFERENCES `trip_seats`  (`id`),
+  CONSTRAINT `tickets_ibfk_3` FOREIGN KEY (`pickup_stop_id`) REFERENCES `route_stops` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `tickets_ibfk_4` FOREIGN KEY (`dropoff_stop_id`) REFERENCES `route_stops` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `payments` (

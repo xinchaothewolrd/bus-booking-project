@@ -14,6 +14,7 @@ import tripRoute from './routes/tripRoute.js';
 import tripSeatRoute from './routes/tripSeatRoute.js';
 import routeFareRoute from './routes/routeFareRoute.js';
 import priceRuleRoute from './routes/priceRuleRoute.js';
+import routeStopRoute from './routes/routeStopRoute.js';
 dotenv.config();  // load bien moi truong tu file .env
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,7 @@ app.use('/api/trips', protectedRoute, tripRoute); // Quản lý Chuyến Đi (tr
 app.use('/api/trip-seats', protectedRoute, tripSeatRoute); // Quản lý Ghế Ngồi (trip_seats)
 app.use('/api/route-fares', protectedRoute, routeFareRoute); // Bảng giá theo tuyến + loại xe
 app.use('/api/price-rules', protectedRoute, priceRuleRoute); // Luật tăng/giảm giá linh hoạt
+app.use('/api/route-stops', protectedRoute, routeStopRoute); // Quản lý Điểm dừng của tuyến
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server dang chay tren cong ${PORT}`);

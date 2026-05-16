@@ -1,10 +1,19 @@
-import e from 'express';
 import express from 'express';
-import { authMe } from '../controllers/userController.js'; // Import hàm authMe từ userController
+import { 
+  authMe, 
+  getAllUsers, 
+  getUserById, 
+  updateUserRole, 
+  deleteUser 
+} from '../controllers/userController.js';
+import { protectedRoute, requireAdmin } from '../middlewares/authMiddleware.js';
 
-const router = express.Router(); // Định nghĩa route
+const router = express.Router();
 
-router.get('/me', authMe); //  Định nghĩa route GET /me và gán hàm authMe làm handler (bạn cần định nghĩa hàm authMe trong userController.js)
-
+router.get('/me', protectedRoute, authMe);
+router.get('/', protectedRoute, requireAdmin, getAllUsers);
+router.get('/:id', protectedRoute, requireAdmin, getUserById);
+router.put('/:id/role', protectedRoute, requireAdmin, updateUserRole);
+router.delete('/:id', protectedRoute, requireAdmin, deleteUser);
 
 export default router;
