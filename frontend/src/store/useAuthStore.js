@@ -7,42 +7,53 @@ const useAuthStore = create((set) => ({
   isLoading: true,
   isLogin: false,
 
-  setAuth: (token, user) =>
+  setAuth: (token, user) => {
+    localStorage.setItem("token", token);
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
     set({
       accessToken: token,
       user,
       isLogin: true,
-    }),
-  
+    });
+  },
+
   setLoading: (val) => set({ isLoading: val }),
 
   fetchMe: async (token) => {
     try {
       const res = await fetchMeApi(token);
+      const user = res.data.user;
+      localStorage.setItem("user", JSON.stringify(user));
 
       set({
-        user: res.data.user,
+        user,
         isLogin: true,
       });
 
-      return res.data.user; // 🔥 nên return luôn
+      return user; 
     } catch (err) {
+      localStorage.removeItem("user");
       set({
         user: null,
         isLogin: false,
       });
-      throw err; // 🔥 để initAuth bắt được
+      throw err; 
     }
   },
 
-  logOut: () =>
+  logOut: () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     set({
       accessToken: null,
       user: null,
       isLogin: false,
-    }),
-
-  
+    });
+  },
 }));
 
 export default useAuthStore;

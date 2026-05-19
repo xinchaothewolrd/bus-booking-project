@@ -43,6 +43,8 @@ export default function LoginForm() {
 
     if (user?.role === "admin") {
       navigate("/admin");
+    } else if (user?.role === "staff") {
+      navigate("/admin/bookings");
     } else {
       navigate("/");
     }

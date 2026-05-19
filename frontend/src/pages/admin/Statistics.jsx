@@ -200,33 +200,33 @@ export default function Statistics() {
         const keys   = getMonthsInRange(months);
         chartData    = keys.map((key) => ({
           label: fmtMonth(key),
-          value: paid.filter((b) => b.booking_time?.slice(0, 7) === key)
-                     .reduce((s, b) => s + Number(b.total_amount ?? 0), 0),
+          value: paid.filter((b) => b.createdAt?.slice(0, 7) === key)
+                     .reduce((s, b) => s + Number(b.totalAmount ?? b.total_amount ?? 0), 0),
         }));
       } else {
         const days = range === "7d" ? 7 : 30;
         const keys = getDaysInRange(days);
         chartData  = keys.map((key) => ({
           label: fmtDate(key),
-          value: paid.filter((b) => b.booking_time?.slice(0, 10) === key)
-                     .reduce((s, b) => s + Number(b.total_amount ?? 0), 0),
+          value: paid.filter((b) => b.createdAt?.slice(0, 10) === key)
+                     .reduce((s, b) => s + Number(b.totalAmount ?? b.total_amount ?? 0), 0),
         }));
       }
 
       const routeMap = {};
       paid.forEach((b) => {
-        const trip  = trips.find((t) => t.id === b.trip_id || t.id === Number(b.trip_id));
-        const route = trip ? routes.find((r) => r.id === trip.route_id || r.id === Number(trip.route_id)) : null;
+        const trip  = trips.find((t) => t.id === (b.tripId || b.trip_id) || t.id === Number(b.tripId || b.trip_id));
+        const route = trip ? routes.find((r) => r.id === (trip.routeId || trip.route_id) || r.id === Number(trip.routeId || trip.route_id)) : null;
         if (route) {
-          const key = `${route.departure_location} → ${route.arrival_location}`;
-          routeMap[key] = (routeMap[key] ?? 0) + Number(b.total_amount ?? 0);
+          const key = `${route.departureLocation || route.departure_location} → ${route.arrivalLocation || route.arrival_location}`;
+          routeMap[key] = (routeMap[key] ?? 0) + Number(b.totalAmount ?? b.total_amount ?? 0);
         }
       });
       const topRoutes = Object.entries(routeMap).sort(([,a],[,b])=>b-a).slice(0,7).map(([name,value])=>({name,value}));
 
       setData({
         chartData,
-        totalRevenue:  paid.reduce((s, b) => s + Number(b.total_amount ?? 0), 0),
+        totalRevenue:  paid.reduce((s, b) => s + Number(b.totalAmount ?? b.total_amount ?? 0), 0),
         totalPaid:     paid.length,
         totalBookings: bookings.length,
         cancelRate:    bookings.length ? Math.round((bookings.filter((b) => b.status === "cancelled").length / bookings.length) * 100) : 0,

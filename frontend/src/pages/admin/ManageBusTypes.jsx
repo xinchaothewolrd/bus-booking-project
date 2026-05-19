@@ -11,7 +11,7 @@ api.interceptors.request.use((cfg) => {
 });
 
 // ─── Config giới hạn ─────────────────────────────────────────────────────────
-const LIMITS = { rows: { min: 1, max: 6 }, cols: { min: 1, max: 3 } };
+const LIMITS = { rows: { min: 1, max: 10 }, cols: { min: 1, max: 10 } };
 
 // Clamp giá trị trong giới hạn
 function clamp(val, min, max) {
@@ -20,32 +20,29 @@ function clamp(val, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
-// ─── Build seat_layout JSON 2 tầng ───────────────────────────────────────────
-// Tầng dưới: A1, A2... | Tầng trên: B1, B2...
-function buildLayout(rows, cols) {
-  const makeFloor = (prefix) =>
-    Array.from({ length: rows }, (_, r) =>
-      Array.from({ length: cols }, (_, c) => `${prefix}${r * cols + c + 1}`)
-    );
-
+// ─── Build seat_layout JSON ──────────────────────────────────────────────────
+function buildLayout(rows, cols, floors = 2) {
   return {
-    floors: [
-      { floor: 1, label: "Tầng dưới", rows: makeFloor("A") },
-      { floor: 2, label: "Tầng trên", rows: makeFloor("B") },
-    ],
+    floors: Number(floors) || 1,
+    rows: rows,
+    cols: cols
   };
 }
 
 // Parse layout về rows/cols để hiện vào form khi edit
 function parseLayout(layout) {
   if (!layout) return { rows: 3, cols: 2 };
-  // Format 2 tầng
-  if (layout.floors) {
+  // Format 2 tầng (array of floor objects)
+  if (layout.floors && Array.isArray(layout.floors)) {
     const firstFloor = layout.floors[0];
     return {
       rows: firstFloor?.rows?.length ?? 3,
       cols: firstFloor?.rows?.[0]?.length ?? 2,
     };
+  }
+  // Format đơn giản (object {rows, cols, floors})
+  if (layout.rows && layout.cols) {
+    return { rows: layout.rows, cols: layout.cols };
   }
   // Format cũ (array 2D)
   if (Array.isArray(layout)) {
@@ -54,8 +51,8 @@ function parseLayout(layout) {
   return { rows: 3, cols: 2 };
 }
 
-function totalSeatsFromLayout(rows, cols) {
-  return rows * cols * 2; // 2 tầng
+function totalSeatsFromLayout(rows, cols, floors = 2) {
+  return rows * cols * (Number(floors) || 1);
 }
 
 const PAGE_SIZE = 6;
@@ -102,12 +99,12 @@ function ClampedInput({ label, value, min, max, onChange, hint }) {
 
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-400 mb-1">{label}</label>
+      <label className="block text-[11px] font-semibold text-slate-500 mb-1">{label}</label>
       <div className="relative">
         <input
           type="number" min={min} max={max} value={value}
           onChange={handleChange}
-          className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 outline-none transition
+          className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 outline-none transition
             ${warn ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200 focus:border-indigo-400 focus:ring-2 ring-indigo-50"}`}
         />
         {warn && (
@@ -116,7 +113,7 @@ function ClampedInput({ label, value, min, max, onChange, hint }) {
           </span>
         )}
       </div>
-      <p className="text-[10px] text-slate-400 mt-1">{hint}</p>
+      {hint && <p className="text-[11px] text-slate-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -131,19 +128,43 @@ function SeatLayoutPreview({ layout, compact }) {
     { color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe", label: "Tầng trên (B)" },
   ];
 
-  // Normalize — hỗ trợ cả format mới (floors) và cũ (array 2D)
-  let floors = [];
+  let floorData = [];
   if (layout?.floors) {
-    floors = layout.floors;
+    if (Array.isArray(layout.floors)) {
+        floorData = layout.floors;
+    } else if (typeof layout.floors === 'number') {
+        for (let i = 0; i < layout.floors; i++) {
+            const prefix = String.fromCharCode(65 + i);
+            const rowsArr = [];
+            for (let r = 0; r < layout.rows; r++) {
+                const colsArr = [];
+                for (let c = 0; c < layout.cols; c++) {
+                    colsArr.push(`${prefix}${r * layout.cols + c + 1}`);
+                }
+                rowsArr.push(colsArr);
+            }
+            floorData.push({ floor: i + 1, label: `Tầng ${i + 1}`, rows: rowsArr });
+        }
+    }
   } else if (Array.isArray(layout)) {
-    floors = [{ floor: 1, label: "Tầng dưới", rows: layout }];
+    floorData = [{ floor: 1, label: "Sơ đồ", rows: layout }];
+  } else if (layout?.rows && layout?.cols) {
+     const rowsArr = [];
+     for (let r = 0; r < layout.rows; r++) {
+         const colsArr = [];
+         for (let c = 0; c < layout.cols; c++) {
+             colsArr.push(`${r * layout.cols + c + 1}`);
+         }
+         rowsArr.push(colsArr);
+     }
+     floorData = [{ floor: 1, label: "Sơ đồ", rows: rowsArr }];
   }
 
-  if (floors.length === 0) return <span className="text-xs text-slate-400">Chưa có sơ đồ</span>;
+  if (floorData.length === 0) return <span className="text-xs text-slate-500">Chưa có sơ đồ</span>;
 
   return (
     <div className="space-y-3">
-      {floors.map((floor, fi) => {
+      {floorData.map((floor, fi) => {
         const s = FLOOR_STYLE[fi] ?? FLOOR_STYLE[0];
         return (
           <div key={fi}>
@@ -184,7 +205,7 @@ function ConfirmModal({ busType, onClose, onConfirm, loading }) {
         </div>
         <p className="font-bold text-slate-900 mb-1">Xóa loại xe?</p>
         <p className="text-xs text-slate-400 mb-1">Bạn sắp xóa loại xe</p>
-        <p className="text-sm font-semibold text-slate-700 mb-2">"{busType?.type_name}"</p>
+        <p className="text-sm font-semibold text-slate-700 mb-2">"{busType?.typeName}"</p>
         <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-5">
           ⚠️ Các chuyến xe dùng loại xe này có thể bị ảnh hưởng.
         </p>
@@ -209,9 +230,13 @@ function BusTypeModal({ busType, onClose, onSave }) {
   const isEdit = !!busType?.id;
 
   const initForm = () => {
-    if (!busType) return { type_name: "", rows: 3, cols: 2 };
-    const { rows, cols } = parseLayout(busType.seat_layout);
-    return { type_name: busType.type_name ?? "", rows, cols };
+    if (!busType) return { typeName: "", rows: 3, cols: 2, floors: 2 };
+    const { rows, cols } = parseLayout(busType.seatLayout);
+    const floorsVal = busType.seatLayout?.floors;
+    const floorsCount = typeof floorsVal === 'number' 
+      ? floorsVal 
+      : (floorsVal?.length ?? (busType.totalSeats === rows * cols ? 1 : 2));
+    return { typeName: busType.typeName ?? "", rows, cols, floors: floorsCount };
   };
 
   const [form, setForm]     = useState(initForm);
@@ -220,13 +245,14 @@ function BusTypeModal({ busType, onClose, onSave }) {
 
   const setRows = (v) => setForm((p) => ({ ...p, rows: clamp(v, LIMITS.rows.min, LIMITS.rows.max) }));
   const setCols = (v) => setForm((p) => ({ ...p, cols: clamp(v, LIMITS.cols.min, LIMITS.cols.max) }));
+  const setFloors = (v) => setForm((p) => ({ ...p, floors: Number(v) }));
 
-  const previewLayout  = buildLayout(form.rows, form.cols);
-  const totalSeats     = totalSeatsFromLayout(form.rows, form.cols);
+  const previewLayout  = buildLayout(form.rows, form.cols, form.floors);
+  const totalSeats     = totalSeatsFromLayout(form.rows, form.cols, form.floors);
 
   const validate = () => {
     const e = {};
-    if (!form.type_name.trim()) e.type_name = "Không được để trống";
+    if (!form.typeName.trim()) e.typeName = "Không được để trống";
     return e;
   };
 
@@ -235,17 +261,17 @@ function BusTypeModal({ busType, onClose, onSave }) {
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     const payload = {
-      type_name:   form.type_name.trim(),
-      total_seats: totalSeats,
-      seat_layout: previewLayout,
+      typeName:   form.typeName.trim(),
+      totalSeats: totalSeats,
+      seatLayout: previewLayout,
     };
     try {
       if (isEdit) {
         const { data } = await api.put(`/bus-types/${busType.id}`, payload);
-        onSave(data);
+        onSave(data.data || data);
       } else {
         const { data } = await api.post("/bus-types", payload);
-        onSave(data);
+        onSave(data.data || data);
       }
     } catch {
       setErrors({ _global: "Lưu thất bại, thử lại." });
@@ -282,39 +308,62 @@ function BusTypeModal({ busType, onClose, onSave }) {
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Tên loại xe *</label>
             <input
-              value={form.type_name}
-              onChange={(e) => { setForm((p) => ({ ...p, type_name: e.target.value })); setErrors((p) => ({ ...p, type_name: "" })); }}
+              value={form.typeName}
+              onChange={(e) => { setForm((p) => ({ ...p, typeName: e.target.value })); setErrors((p) => ({ ...p, typeName: "" })); }}
               placeholder="VD: Giường nằm 2 tầng 36 chỗ"
-              className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 outline-none transition
-                ${errors.type_name ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-indigo-400 focus:ring-2 ring-indigo-50"}`}
+              className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 outline-none transition
+                ${errors.typeName ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-indigo-400 focus:ring-2 ring-indigo-50"}`}
             />
-            {errors.type_name && <p className="text-[11px] text-red-500 mt-1">{errors.type_name}</p>}
+            {errors.typeName && <p className="text-[11px] text-red-500 mt-1">{errors.typeName}</p>}
           </div>
 
           {/* Cấu hình */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-semibold text-slate-500">Cấu hình sơ đồ ghế</label>
-              {/* 2 tầng badge cố định */}
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ color: "#7c3aed", backgroundColor: "#f5f3ff" }}>
-                🚌 2 tầng cố định
-              </span>
+            </div>
+
+            {/* Segmented Control chọn 1 tầng hoặc 2 tầng cực kỳ Premium */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Số tầng xe</label>
+              <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/30">
+                <button
+                  type="button"
+                  onClick={() => setFloors(1)}
+                  className={`py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${
+                    form.floors === 1
+                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/50"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  🚌 Xe 1 Tầng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFloors(2)}
+                  className={`py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${
+                    form.floors === 2
+                      ? "bg-white text-indigo-600 shadow-xs border border-indigo-100"
+                      : "text-slate-500 hover:text-indigo-500"
+                  }`}
+                >
+                  ⚡ Xe 2 Tầng
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-1">
               <ClampedInput
-                label={`Số hàng / tầng (${LIMITS.rows.min}–${LIMITS.rows.max})`}
+                label="Số hàng / tầng"
                 value={form.rows}
                 min={LIMITS.rows.min} max={LIMITS.rows.max}
                 onChange={setRows}
-                hint={`Tối đa ${LIMITS.rows.max} hàng mỗi tầng`}
               />
               <ClampedInput
-                label={`Số cột (${LIMITS.cols.min}–${LIMITS.cols.max})`}
+                label="Số cột"
                 value={form.cols}
                 min={LIMITS.cols.min} max={LIMITS.cols.max}
                 onChange={setCols}
-                hint={`Tối đa ${LIMITS.cols.max} cột`}
               />
             </div>
 
@@ -323,7 +372,7 @@ function BusTypeModal({ busType, onClose, onSave }) {
               <div className="h-px flex-1 bg-slate-100" />
               <span className="text-xs font-bold text-slate-500">
                 Tổng: <span style={{ color: "#4f46e5" }}>{totalSeats} ghế</span>
-                <span className="text-slate-400 font-normal"> ({form.rows * form.cols} ghế × 2 tầng)</span>
+                <span className="text-slate-400 font-normal"> ({form.rows * form.cols} ghế × {form.floors} tầng)</span>
               </span>
               <div className="h-px flex-1 bg-slate-100" />
             </div>
@@ -336,7 +385,7 @@ function BusTypeModal({ busType, onClose, onSave }) {
                 <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-slate-200 rounded-full">Đầu xe</span>
                 <div className="h-px flex-1 bg-slate-200"/>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-60 pr-1.5 scrollbar-thin">
                 <SeatLayoutPreview layout={previewLayout} compact={false} />
               </div>
             </div>
@@ -399,19 +448,19 @@ export default function ManageBusTypes() {
     try {
       await api.delete(`/bus-types/${confirmDel.id}`);
       setBusTypes((p) => p.filter((b) => b.id !== confirmDel.id));
-      showToast(`Đã xóa "${confirmDel.type_name}"`);
+      showToast(`Đã xóa "${confirmDel.typeName}"`);
       setConfirmDel(null);
     } catch { showToast("Xóa thất bại", "error"); }
     finally { setDelLoading(false); }
   };
 
-  const filtered   = busTypes.filter((b) => !search || b.type_name?.toLowerCase().includes(search.toLowerCase()));
+  const filtered   = busTypes.filter((b) => !search || b.typeName?.toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
   const pageData   = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const totalSeats = busTypes.reduce((s, b) => s + (b.total_seats ?? 0), 0);
-  const maxSeats   = busTypes.length ? Math.max(...busTypes.map((b) => b.total_seats ?? 0)) : 0;
+  const totalSeats = busTypes.reduce((s, b) => s + (b.totalSeats ?? 0), 0);
+  const maxSeats   = busTypes.length ? Math.max(...busTypes.map((b) => b.totalSeats ?? 0)) : 0;
 
   return (
     <>
@@ -503,8 +552,8 @@ export default function ManageBusTypes() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {pageData.map((bt) => {
-                    const { rows, cols } = parseLayout(bt.seat_layout);
-                    const isDoubleFloor  = bt.seat_layout?.floors?.length === 2;
+                    const { rows, cols } = parseLayout(bt.seatLayout);
+                    const isDoubleFloor  = bt.seatLayout?.floors === 2 || bt.seatLayout?.floors?.length === 2;
                     return (
                       <div
                         key={bt.id}
@@ -522,7 +571,7 @@ export default function ManageBusTypes() {
                               </svg>
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-slate-900 leading-tight">{bt.type_name}</p>
+                              <p className="text-sm font-bold text-slate-900 leading-tight">{bt.typeName}</p>
                               <p className="text-[11px] text-slate-400 font-mono">#{bt.id}</p>
                             </div>
                           </div>
@@ -558,7 +607,7 @@ export default function ManageBusTypes() {
                         {/* Badges */}
                         <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ color: "#4f46e5", backgroundColor: "#eef2ff" }}>
-                            {bt.total_seats} ghế
+                            {bt.totalSeats ?? bt.total_seats} ghế
                           </span>
                           {isDoubleFloor && (
                             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ color: "#7c3aed", backgroundColor: "#f5f3ff" }}>
@@ -575,8 +624,8 @@ export default function ManageBusTypes() {
                         {/* Seat preview */}
                         <div className="bg-white rounded-xl p-3 border border-slate-100">
                           <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-2">Sơ đồ ghế</p>
-                          {bt.seat_layout
-                            ? <SeatLayoutPreview layout={bt.seat_layout} compact={bt.total_seats > 24} />
+                          {(bt.seatLayout || bt.seat_layout)
+                            ? <SeatLayoutPreview layout={bt.seatLayout || bt.seat_layout} compact={(bt.totalSeats ?? bt.total_seats) > 24} />
                             : <p className="text-xs text-slate-400 text-center py-2">Chưa có sơ đồ ghế</p>
                           }
                         </div>

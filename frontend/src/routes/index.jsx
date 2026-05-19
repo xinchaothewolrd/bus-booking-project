@@ -24,7 +24,10 @@ import ManageTrips from "../pages/admin/ManageTrips";
 import ManageSeats from "../pages/admin/ManageSeats";
 import ManageBusTypes from "../pages/admin/ManageBusTypes";
 import ManageBookings from "../pages/admin/ManageBookings";
+import ManageCheckin from "../pages/admin/ManageCheckin";
 import Statistics from "../pages/admin/Statistics";
+import ManagePriceRules from "../pages/admin/ManagePriceRules";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -51,6 +54,8 @@ export default function AppRouter() {
           <Route path="seats" element={<ManageSeats />} />
           <Route path="bus-types" element={<ManageBusTypes />} />
           <Route path="bookings" element={<ManageBookings />} />
+          <Route path="checkin" element={<ManageCheckin />} />
+          <Route path="price-rules" element={<ManagePriceRules />} />
           <Route path="statistics" element={<Statistics />} />
         </Route>
 
