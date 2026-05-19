@@ -23,6 +23,7 @@ import ManageRoutes  from "../pages/admin/ManageRoutes";
 import ManageTrips from "../pages/admin/ManageTrips";
 import ManageSeats from "../pages/admin/ManageSeats";
 import ManageBusTypes from "../pages/admin/ManageBusTypes";
+import ManageBuses from "../pages/admin/ManageBuses";
 import ManageBookings from "../pages/admin/ManageBookings";
 import ManageCheckin from "../pages/admin/ManageCheckin";
 import Statistics from "../pages/admin/Statistics";
@@ -53,6 +54,7 @@ export default function AppRouter() {
           <Route path="trips" element={<ManageTrips />} />
           <Route path="seats" element={<ManageSeats />} />
           <Route path="bus-types" element={<ManageBusTypes />} />
+          <Route path="buses" element={<ManageBuses />} />
           <Route path="bookings" element={<ManageBookings />} />
           <Route path="checkin" element={<ManageCheckin />} />
           <Route path="price-rules" element={<ManagePriceRules />} />

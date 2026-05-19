@@ -59,6 +59,18 @@ const NAV_GROUPS = [
         ),
       },
       {
+        to: "/admin/buses",
+        label: "Quản lý chi tiết xe",
+        icon: (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="6" width="20" height="12" rx="2.5" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="1.8" />
+            <circle cx="6.5" cy="18" r="1.5" fill="currentColor" />
+            <circle cx="17.5" cy="18" r="1.5" fill="currentColor" />
+            <path d="M5 6V4M19 6V4M2 11h20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+          </svg>
+        ),
+      },
+      {
         to: "/admin/trips",
         label: "Quản lý chuyến xe",
         badge: "Live",

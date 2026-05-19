@@ -118,6 +118,7 @@ function ConfirmModal({ trip, onClose, onConfirm, loading }) {
 // ─── Trip Modal ───────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
   routeId: "",
+  busTypeId: "",
   busId: "",
   departureTime: "",
   arrivalTimeExpected: "",
@@ -134,10 +135,15 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
   // Ép dữ liệu vào form mỗi khi trip thay đổi
   useEffect(() => {
     if (trip) {
+      const initialBusId = trip.busId || trip.bus_id || "";
+      const associatedBus = buses.find((b) => b.id == initialBusId);
+      const initialBusTypeId = associatedBus?.busTypeId || associatedBus?.bus_type_id || associatedBus?.busType?.id || "";
+
       setForm({
         ...trip,
         routeId: trip.routeId || trip.route_id || "",
-        busId: trip.busId || trip.bus_id || "",
+        busTypeId: initialBusTypeId,
+        busId: initialBusId,
         price: trip.price ?? trip.fare ?? trip.ticketPrice ?? "",
         departureTime: toInputDatetime(trip.departureTime || trip.departure_time),
         arrivalTimeExpected: toInputDatetime(trip.arrivalTimeExpected || trip.arrival_time_expected),
@@ -147,7 +153,7 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
       setForm(EMPTY_FORM);
     }
     setErrors({});
-  }, [trip]);
+  }, [trip, buses]);
 
   // Tự động tính giá vé khi chọn Tuyến đường, Xe hoặc thời gian xuất bến thay đổi
   useEffect(() => {
@@ -213,10 +219,16 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
 
   const set = (k, v) => { setForm((p) => ({ ...p, [k]: v })); setErrors((p) => ({ ...p, [k]: "" })); };
 
+  const handleBusTypeChange = (val) => {
+    setForm((p) => ({ ...p, busTypeId: val, busId: "" }));
+    setErrors((p) => ({ ...p, busTypeId: "", busId: "" }));
+  };
+
   const validate = () => {
     const e = {};
     if (!form.routeId) e.routeId = "Chọn tuyến đường";
-    if (!form.busId) e.busId = "Chọn xe";
+    if (!form.busTypeId) e.busTypeId = "Chọn loại xe";
+    if (!form.busId) e.busId = "Chọn xe theo biển số";
     if (!form.departureTime) e.departureTime = "Chọn giờ khởi hành";
     if (!form.price || isNaN(Number(form.price))) e.price = "Giá vé không hợp lệ";
     return e;
@@ -247,6 +259,8 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
 
   const selClass = (err) => `w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 outline-none transition ${err ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-blue-400 focus:ring-2 ring-blue-50"}`;
   const inpClass = (err) => selClass(err);
+
+  const filteredBuses = buses.filter(b => b.busTypeId == form.busTypeId || b.bus_type_id == form.busTypeId);
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -282,14 +296,44 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
               {errors.routeId && <p className="text-[11px] text-red-500 mt-1">{errors.routeId}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Xe *</label>
-              <select value={form.busId} onChange={(e) => set("busId", e.target.value)} className={selClass(errors.busId)}>
-                <option value="">-- Chọn xe --</option>
-                {buses?.map((b) => (
-                  <option key={b.id} value={b.id}>{b.licensePlate} ({b.busType?.typeName})</option>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Loại xe khách *</label>
+              <select value={form.busTypeId} onChange={(e) => handleBusTypeChange(e.target.value)} className={selClass(errors.busTypeId)}>
+                <option value="">-- Chọn loại xe --</option>
+                {busTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.typeName} ({t.totalSeats} chỗ)</option>
+                ))}
+              </select>
+              {errors.busTypeId && <p className="text-[11px] text-red-500 mt-1">{errors.busTypeId}</p>}
+            </div>
+          </div>
+
+          {/* Bus (License Plate) + Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Chọn xe khách (Theo biển số) *</label>
+              <select
+                value={form.busId}
+                onChange={(e) => set("busId", e.target.value)}
+                disabled={!form.busTypeId}
+                className={selClass(errors.busId)}
+              >
+                <option value="">{form.busTypeId ? "-- Chọn biển số xe --" : "-- Chọn loại xe trước --"}</option>
+                {filteredBuses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.licensePlate || b.license_plate} {b.driverName || b.driver_name ? `(Tài: ${b.driverName || b.driver_name})` : ""}
+                  </option>
                 ))}
               </select>
               {errors.busId && <p className="text-[11px] text-red-500 mt-1">{errors.busId}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Trạng thái chuyến xe</label>
+              <select value={form.status} onChange={(e) => set("status", e.target.value)} className={selClass(false)}>
+                <option value="scheduled">Chờ khởi hành</option>
+                <option value="departing">Đang chạy</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="cancelled">Đã hủy</option>
+              </select>
             </div>
           </div>
 
@@ -306,30 +350,19 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
             </div>
           </div>
 
-          {/* Price + Status */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Giá vé (VNĐ) *</label>
-              <input
-                type="number"
-                value={form.price}
-                disabled={true}
-                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 outline-none cursor-not-allowed font-semibold"
-              />
-              <p className="text-[10px] text-blue-500 mt-1 italic font-medium">
-                ⓘ Lưu ý: Giá vé tự động tính theo tuyến + loại xe của chuyến đi.
-              </p>
-              {errors.price && <p className="text-[11px] text-red-500 mt-1">{errors.price}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Trạng thái</label>
-              <select value={form.status} onChange={(e) => set("status", e.target.value)} className={selClass(false)}>
-                <option value="scheduled">Chờ khởi hành</option>
-                <option value="departing">Đang chạy</option>
-                <option value="completed">Hoàn thành</option>
-                <option value="cancelled">Đã hủy</option>
-              </select>
-            </div>
+          {/* Price */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Giá vé tự động (VNĐ) *</label>
+            <input
+              type="number"
+              value={form.price}
+              disabled={true}
+              className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 outline-none cursor-not-allowed font-semibold"
+            />
+            <p className="text-[10px] text-blue-500 mt-1 italic font-medium">
+              ⓘ Lưu ý: Giá vé tự động tính theo tuyến + loại xe của chuyến đi.
+            </p>
+            {errors.price && <p className="text-[11px] text-red-500 mt-1">{errors.price}</p>}
           </div>
 
           {/* Preview card */}
