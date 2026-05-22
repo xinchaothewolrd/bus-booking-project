@@ -34,6 +34,6 @@ router.put("/:id", protectedRoute, updateBooking);
 router.delete("/:id", protectedRoute, requireAdmin, deleteBooking);
 
 // POST /api/bookings/:id/cancel — Hủy booking (chính user đó)
-router.post("/:id/cancel", protectedRoute, cancelBooking);
+router.post("/:bookingId/cancel", protectedRoute, cancelBooking);
 
 export default router;

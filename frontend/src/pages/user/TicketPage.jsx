@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-
+import { toast } from "sonner";
 // Giả sử mày import useAuthStore và hàm gọi API từ đường dẫn này
 import useAuthStore from "../../store/useAuthStore";
 import { getTicketByUser } from '../../services/ticketService'; // Sửa lại path cho đúng file chứa API của mày
-
+import { cancelBooking } from '../../services/bookingService';
 import TicketCard from '../../components/user/ticket/TicketCard';
 import ETicketModal from '../../components/user/ticket/ETicketModal';
+import { ar } from 'zod/v4/locales';
 
 export default function TicketPage() {
   const user = useAuthStore((s) => s.user);
@@ -49,21 +50,27 @@ export default function TicketPage() {
             // Map dữ liệu từ Backend sang chuẩn UI của mày
             groups[bId] = {
               id: bId, // Dùng bookingId làm ID chính cho Card
-              code: item.qrCode.split('-').slice(0, 2).join('-'), // Rút gọn mã: VD "OB-10"
+              code: item.qrCode, // Rút gọn mã: VD "OB-10"
               status: item.Booking?.status === 'paid' ? 'upcoming' : item.Booking?.status,
+              statusTicket: item?.status,
               from: item.PickupStop ? item.PickupStop.address.split(',').pop().trim() : 'Ninh Thuận',
               to: item.DropoffStop ? item.DropoffStop.address.split(',').pop().trim() : 'TP. HCM',
-              busPlate: '29B-888.88', // API hiện tại chưa có biển số, tao để tạm
+              departureTime: item.Booking?.Trip?.departureTime || '2024-12-31T08:00:00Z', // API chưa có giờ chạy chính xác của Trip, tao để tạm
+              arrivalTime: item.Booking?.Trip?.arrivalTime || '2024-12-31T12:00:00Z', // API chưa có giờ chạy chính xác của Trip, tao để tạm
               timeRange: 'Dự kiến', // API chưa có giờ chạy chính xác của Trip
               date: formattedDate,
               seats: [], // Mảng chứa các ghế
               pickupLocation: item.PickupStop 
                 ? `${item.PickupStop.stopName} (${item.PickupStop.address})` 
                 : 'Chưa đăng ký điểm đón',
+              dropoffLocation: item.DropoffStop 
+                ? `${item.DropoffStop.stopName} (${item.DropoffStop.address})` 
+                : 'Chưa đăng ký điểm trả',
               // Lưu lại danh sách vé gốc để hiển thị QR riêng nếu cần
               rawTickets: [],
               passengerName: item.passengerName,
-              totalAmount: item.Booking?.totalAmount
+              totalAmount: item.Booking?.totalAmount,
+              created_at: item.created_at
             };
           }
           // Đẩy ghế và vé gốc vào nhóm
@@ -79,6 +86,10 @@ export default function TicketPage() {
           seats: group.seats.join(', ')
         }));
 
+        processedTickets.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+
         setGroupedTickets(processedTickets);
       } catch (err) {
         console.error("Lỗi lấy danh sách vé:", err);
@@ -91,16 +102,48 @@ export default function TicketPage() {
     fetchTickets();
   }, [user?.id]);
 
+  const handleCancelTicket = async (bookingId) => {
+    // 1. Hỏi cho chắc, lỡ khách bấm nhầm
+    if (!window.confirm("Bạn có chắc chắn muốn hủy vé này không? Hành động này không thể hoàn tác.")) {
+      return;
+    }
+
+    try {
+      // 2. Gọi API Backend
+      const res = await cancelBooking(bookingId);
+      
+      // Thông báo thành công (có số tiền hoàn lại từ backend)
+      toast.success(res.data?.message || "Hủy vé thành công!");
+
+      // 3. Cập nhật State để UI tự nhảy vé sang tab "Đã hủy"
+      setGroupedTickets(prevTickets => 
+        prevTickets.map(t => 
+          t.id === bookingId 
+            ? { ...t, status: 'cancelled', statusTicket: 'cancelled' } 
+            : t
+        )
+      );
+
+      // 4. Đóng pop-up E-ticket lại
+      setSelectedTicket(null);
+
+    } catch (err) {
+      console.error("Lỗi khi hủy vé:", err);
+      // Bắt câu chửi của Backend (ví dụ: Sắp đến giờ chạy cấm hủy)
+      alert(err.response?.data?.message || "Đã xảy ra lỗi, không thể hủy vé lúc này.");
+    }
+  };
+
   // Lọc vé theo bộ lọc hiện tại
   const filteredTickets = groupedTickets.filter(t => {
     if (ticketFilter === 'upcoming') {
-      return t.status === 'upcoming' || t.status === 'paid' || t.status === 'pending';
+      return t.statusTicket === 'unused';
     }
     if (ticketFilter === 'completed') {
-      return t.status === 'completed' || t.status === 'used';
+      return t.statusTicket === 'completed' || t.statusTicket === 'used';
     }
     if (ticketFilter === 'cancelled') {
-      return t.status === 'cancelled';
+      return t.statusTicket === 'cancelled';
     }
     return false;
   });
@@ -182,6 +225,7 @@ export default function TicketPage() {
           <ETicketModal 
             ticket={selectedTicket} 
             onClose={() => setSelectedTicket(null)} 
+            onCancel={() => handleCancelTicket(selectedTicket.id)}
           />
         )}
       </AnimatePresence>

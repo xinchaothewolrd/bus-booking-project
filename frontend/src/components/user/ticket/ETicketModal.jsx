@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from "framer-motion";
 import { X, ArrowRight, Trash2, Download } from 'lucide-react';
 
-export default function ETicketModal({ ticket, onClose }) {
+export default function ETicketModal({ ticket, onClose, onCancel }) {
   if (!ticket) return null;
 
   // Lấy chuỗi QR từ vé đầu tiên trong danh sách rawTickets gộp
@@ -30,53 +30,172 @@ export default function ETicketModal({ ticket, onClose }) {
           </button>
         </div>
 
-        <div className="p-8 flex flex-col items-center">
-          <div className="bg-white p-4 rounded-2xl mb-6 shadow-xl">
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`}
-              alt="QR Code"
-              className="w-48 h-48"
-            />
-          </div>
-          <p className="text-on-surface-variant text-sm mb-1 uppercase tracking-widest font-medium">Mã Đặt Chỗ</p>
-          <p className="text-3xl font-bold text-primary tracking-tighter mb-8">{ticket.code}</p>
+        <div className="p-6">
 
-          <div className="w-full space-y-4 text-sm border-t border-dashed border-outline pt-8 relative">
-            <div className="absolute -left-12 -top-4 w-8 h-8 rounded-full bg-background/50 border-r border-outline" />
-            <div className="absolute -right-12 -top-4 w-8 h-8 rounded-full bg-background/50 border-l border-outline" />
-            
-            <div className="flex justify-between items-center">
-              <span className="text-on-surface-variant">Nhà xe</span>
-              <span className="font-semibold text-on-surface">OceanBus</span>
+          {/* Header Route */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="text-center">
+              <p className="text-xs text-on-surface-variant">
+                Điểm đi
+              </p>
+
+              <h3 className="font-bold text-lg">
+                {ticket.from}
+              </h3>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-on-surface-variant">Tuyến đường</span>
-              <span className="font-semibold text-on-surface flex items-center gap-2">
-                {ticket.from} <ArrowRight size={14} className="text-primary" /> {ticket.to}
-              </span>
+
+            <ArrowRight
+              size={18}
+              className="text-primary mt-4"
+            />
+
+            <div className="text-center">
+              <p className="text-xs text-on-surface-variant">
+                Điểm đến
+              </p>
+
+              <h3 className="font-bold text-lg">
+                {ticket.to}
+              </h3>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-on-surface-variant">Thời gian</span>
-              <span className="font-semibold text-on-surface">{ticket.timeRange} - {ticket.date}</span>
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-[140px_1fr] gap-5 items-start">
+
+            {/* QR */}
+            <div className="flex flex-col items-center">
+              <div className="bg-white p-2 rounded-2xl shadow-lg">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`}
+                  alt="QR Code"
+                  className="w-32 h-32"
+                />
+              </div>
+
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mt-3">
+                Mã vé
+              </p>
+
+              <p className="font-bold text-primary text-sm text-center break-all">
+                {ticket.code}
+              </p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-on-surface-variant">Hành khách</span>
-              <span className="font-semibold text-on-surface">{ticket.passengerName || 'Khách hàng'}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-on-surface-variant">Số ghế</span>
-              <span className="text-primary font-bold text-lg">{ticket.seats}</span>
+
+            {/* Info */}
+            <div className="space-y-3">
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+
+                <div>
+                  <p className="text-on-surface-variant text-xs">
+                    Hành khách
+                  </p>
+
+                  <p className="font-semibold truncate">
+                    {ticket.passengerName || 'Khách hàng'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-on-surface-variant text-xs">
+                    Ghế
+                  </p>
+
+                  <p className="font-bold text-primary">
+                    {ticket.seats}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-on-surface-variant text-xs">
+                    Giờ đi
+                  </p>
+
+                  <p className="font-semibold">
+                    {
+                      new Date(ticket.departureTime).toLocaleString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    }
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Pickup */}
+              <div className="bg-surface/40 rounded-xl p-3">
+                <p className="text-on-surface-variant text-xs mb-1">
+                  Điểm đón
+                </p>
+
+                <p className="text-sm leading-relaxed">
+                  {ticket.pickupLocation || 'Chưa có'}
+                </p>
+              </div>
+
+              <div className="bg-surface/40 rounded-xl p-3">
+                <p className="text-on-surface-variant text-xs mb-1">
+                  Điểm trả
+                </p>
+
+                <p className="text-sm leading-relaxed">
+                  {ticket.dropoffLocation || 'Chưa có'}
+                </p>
+              </div>
+
+              {/* Footer Info */}
+              <div className="flex items-center justify-between pt-2 border-t border-outline/40">
+                <div>
+                  <p className="text-on-surface-variant text-xs">
+                    Tổng tiền
+                  </p>
+
+                  <p className="font-bold text-primary">
+                    {Number(ticket.totalAmount || 0).toLocaleString('vi-VN')}đ
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-on-surface-variant text-xs">
+                    Đặt lúc
+                  </p>
+
+                  <p className="text-xs font-medium">
+                    {
+                      new Date(ticket.created_at).toLocaleString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    }
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
 
         <div className="px-6 py-5 border-t border-outline flex justify-between items-center bg-surface/30">
-          <button className="text-red-400 hover:text-red-300 transition-colors flex items-center gap-2 text-sm font-medium">
-            <Trash2 size={16} /> Hủy vé
-          </button>
-          <button className="bg-primary hover:bg-primary/80 text-background font-bold px-6 py-3 rounded-xl transition-all shadow-lg flex items-center gap-2">
-            <Download size={18} /> Tải vé PDF
-          </button>
+          {ticket.statusTicket !== 'cancelled' ? (
+            <button 
+              onClick={onCancel} // Gọi ngược lên hàm handleCancelTicket của cha
+              className="text-red-400 hover:text-red-300 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Trash2 size={16} /> Hủy vé
+            </button>
+          ) : (
+            <span className="text-red-400 font-medium text-sm flex items-center gap-2">
+              <X size={16} /> Vé này đã hủy
+            </span>
+          )}
         </div>
       </motion.div>
     </motion.div>

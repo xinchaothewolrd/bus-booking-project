@@ -235,7 +235,12 @@ export const getTicketsByUser = async (req, res) => {
 
     const tickets = await Ticket.findAll({
       include: [
-        { model: Booking, as: "Booking", where: { userId }, attributes: ["id", "userId", "tripId", "status", "totalAmount"] },
+        { model: Booking, as: "Booking", where: { userId }, attributes: ["id", "userId", "tripId", "status", "totalAmount"], include: [
+    {
+      model: Trip,
+      as: "Trip",
+    }
+  ] },
         { model: TripSeat, as: "Seat", attributes: ["id", "seatNumber", "status"] },
         { model: RouteStop, as: "PickupStop" },
         { model: RouteStop, as: "DropoffStop" },

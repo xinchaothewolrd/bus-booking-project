@@ -103,7 +103,7 @@ export const vnpayReturn = async (req, res) => {
                     const emailData = {
                         toEmail: booking.User.email,
                         passengerName: booking.Tickets[0]?.passengerName || booking.User.fullName,
-                        bookingCode: `OB-${booking.id}`,
+                        bookingCode: booking.Tickets[0]?.qrCode || `OB-${booking.id}`,
                         routeName: `Chuyến xe OceanBus #${booking.tripId}`, 
                         departureTime: new Date(booking.Trip?.departureTime).toLocaleString('vi-VN'),
                         seats: seatList,

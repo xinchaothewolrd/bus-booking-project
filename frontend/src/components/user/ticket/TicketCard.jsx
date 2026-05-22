@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, QrCode } from 'lucide-react';
 
 export default function TicketCard({ ticket, onShowTicket }) {
-  const isUpcoming = ticket.status === 'upcoming' || ticket.status === 'pending';
+  const isUpcoming = ticket.statusTicket === 'unused' || ticket.statusTicket === 'cancelled';
 
   return (
     <motion.div 
@@ -21,7 +21,13 @@ export default function TicketCard({ ticket, onShowTicket }) {
               ? 'bg-primary/10 text-primary border-primary/20' 
               : 'bg-surface/50 text-on-surface-variant border-outline'
           }`}>
-            {ticket.status === 'upcoming' ? 'Sắp khởi hành' : ticket.status === 'pending' ? 'Chờ thanh toán' : 'Đã hủy/Hoàn thành'}
+              {
+                ticket.statusTicket === 'unused'
+                  ? 'Sắp khởi hành'
+                  : ticket.statusTicket === 'cancelled'
+                  ? 'Đã hủy'
+                  : 'Hoàn thành'
+              }
           </span>
           <span className="text-on-surface-variant text-xs">Mã ĐC: <strong className="text-on-surface">{ticket.code}</strong></span>
         </div>
@@ -32,14 +38,21 @@ export default function TicketCard({ ticket, onShowTicket }) {
             <ArrowRight size={18} className="text-primary" /> 
             {ticket.to}
           </h3>
-          <p className="text-on-surface-variant text-sm">OceanBus • Biển số: {ticket.busPlate}</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
           <div>
             <p className="text-on-surface-variant text-xs mb-1">Thời gian</p>
-            <p className="text-on-surface text-sm font-medium">{ticket.timeRange}</p>
-            <p className="text-on-surface-variant text-xs">{ticket.date}</p>
+            <p className="text-on-surface text-sm font-medium">
+              {
+                      new Date(ticket.departureTime).toLocaleString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    }</p>
           </div>
           <div>
             <p className="text-on-surface-variant text-xs mb-1">Ghế</p>

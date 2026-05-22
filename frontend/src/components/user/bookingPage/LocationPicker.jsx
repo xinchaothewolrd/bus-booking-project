@@ -48,7 +48,7 @@ export default function LocationPicker({ locations, selectedPickup, setSelectedP
         {/* ================= CỘT 1: ĐIỂM ĐÓN ================= */}
         <div className="relative">
           <label className="text-[10px] font-bold text-primary uppercase tracking-wider block mb-1.5">
-            Điểm đón (Ninh Thuận)
+            Điểm đón
           </label>
           
           {/* Nút Trigger */}
@@ -116,7 +116,7 @@ export default function LocationPicker({ locations, selectedPickup, setSelectedP
         {/* ================= CỘT 2: ĐIỂM TRẢ ================= */}
         <div className="relative">
           <label className="text-[10px] font-bold text-tertiary uppercase tracking-wider block mb-1.5">
-            Điểm trả (Hồ Chí Minh)
+            Điểm trả
           </label>
           
           {/* Nút Trigger */}

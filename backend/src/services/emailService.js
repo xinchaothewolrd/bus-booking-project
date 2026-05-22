@@ -82,3 +82,34 @@ export const sendTicketEmail = async (data) => {
     return false;
   }
 };
+
+export const sendCancelEmail = async (data) => {
+  try {
+    const { toEmail, passengerName, bookingCode, refundPercent, refundAmount, seats } = data;
+  
+  const htmlContent = `
+    <h2>Xác nhận Hủy Vé - OceanBus</h2>
+    <p>Chào ${passengerName},</p>
+    <p>Vé <b>${bookingCode}</b> (Ghế: ${seats}) của bạn đã được hủy thành công theo yêu cầu.</p>
+    <p>Dựa trên chính sách hủy vé, bạn được hoàn lại <b>${refundPercent}%</b> giá trị.</p>
+    <p>Số tiền hoàn: <strong style="color:red">${refundAmount.toLocaleString()}đ</strong></p>
+    <p>Tiền sẽ được cộng lại vào thẻ của bạn trong 3-5 ngày làm việc tới.</p>
+  `;
+
+    // Cấu hình gói hàng
+    const mailOptions = {
+      from: `"OceanBus Services" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `[OceanBus] Xác nhận hủy vé`,
+      html: htmlContent,
+    };
+
+    // 🚀 Bấm nút phóng mail
+    const info = await transporter.sendMail(mailOptions);
+    console.log('📧 Bắn mail thành công:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('💥 Lỗi khi gửi mail:', error);
+    return false;
+  }
+};

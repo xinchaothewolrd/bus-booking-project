@@ -139,7 +139,7 @@ export default function PaymentResult() {
             <div className="space-y-4"> {/* space-y-6 -> space-y-4 */}
               {isSuccess ? (
                 <button 
-                  onClick={() => navigate('/my-tickets')}
+                  onClick={() => navigate('/ticket')}
                   className="group relative w-full py-4 bg-sky-400 text-[#001f2e] font-bold text-base rounded-xl shadow-[0_0_20px_rgba(125,211,252,0.3)] hover:shadow-[0_0_40px_rgba(125,211,252,0.5)] hover:brightness-110 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2" // py-5 -> py-4, text-lg -> text-base, rounded-2xl -> rounded-xl, shadow size reduced
                 >
                   <Ticket size={18} /> Xem vé điện tử {/* size 20 -> 18 */}

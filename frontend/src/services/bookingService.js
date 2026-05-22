@@ -7,3 +7,7 @@ export const createBooking = (bookingData) => {
 export const updateBookingStatus = (id, status) => {
   return api.put(`/bookings/${id}`, { status }); 
 };
+
+export const cancelBooking = (bookingId) => {
+  return api.post(`/bookings/${bookingId}/cancel`);
+}

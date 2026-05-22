@@ -26,25 +26,6 @@ export const getAllTrips = async (req, res) => {
   }
 };
 
-// Lấy 1 chuyến xe theo ID
-// export const getTripById = async (req, res) => {
-//   try {
-//     const trip = await Trip.findByPk(req.params.id, {
-//       include: [
-//         { model: Route, as: "route" },
-//         {
-//           model: Bus, as: "bus",
-//           include: [{ model: BusType, as: "busType" }],
-//         },
-//       ],
-//     });
-//     if (!trip) return res.status(404).json({ message: "Chuyến đi không tồn tại." });
-//     return res.status(200).json(trip);
-//   } catch (error) {
-//     console.error("Lỗi lấy chuyến đi:", error);
-//     return res.status(500).json({ message: "Lỗi hệ thống." });
-//   }
-// };
 
 // Lấy 1 chuyến xe theo ID (Đã độ thêm tính năng báo giá)
 export const getTripById = async (req, res) => {
@@ -238,14 +219,18 @@ export const searchTrips = async (req, res) => {
     });
 
     if (!route) return res.json([]);
-
+    const start = new Date(`${date}T00:00:00`);
+    const end = new Date(`${date}T23:59:59`);
     const trips = await Trip.findAll({
+
+
       where: {
         routeId: route.id,
         status: "scheduled",
-        [Op.and]: [
-          where(fn("DATE", col("Trip.departure_time")), date),
-        ],
+        departure_time: {
+          [Op.between]: [start, end],
+          [Op.gt]: new Date(),
+        },
       },
       include: [
         {
@@ -274,8 +259,18 @@ export const searchTrips = async (req, res) => {
       order: [["priority", "DESC"]],
     });
 
-    const result = trips.map((trip) => {
-      const t = trip.toJSON(); // 🔥 FIX 1
+    const now = new Date();
+
+    const mapped = await Promise.all(trips.map(async (trip) => {
+      const t = trip.toJSON();
+
+      // 1) skip trips that already departed
+      const departure = new Date(t.departureTime);
+      if (departure <= now) return null;
+
+      // 2) skip trips that have no available seats
+      const availableSeats = await TripSeat.count({ where: { tripId: t.id, status: 'available' } });
+      if (availableSeats === 0) return null;
 
       if (!t.bus || !t.bus.busType) return null;
 
@@ -285,24 +280,19 @@ export const searchTrips = async (req, res) => {
       const fare = fares.find(f => f.bus_type_id === busTypeId);
       if (!fare) return null;
 
-      let price = fare.basePrice; // 🔥 FIX 2
+      let price = parseFloat(fare.basePrice) || 0;
 
       rules.forEach((rule) => {
-        const matchRoute =
-          !rule.route_id || rule.route_id === t.routeId;
-
-        const matchBusType =
-          !rule.bus_type_id || rule.bus_type_id === busTypeId;
+        const matchRoute = !rule.route_id || rule.route_id === t.routeId;
+        const matchBusType = !rule.bus_type_id || rule.bus_type_id === busTypeId;
 
         if (matchRoute && matchBusType) {
-          if (rule.priceMultiplier) price *= rule.priceMultiplier;
-          if (rule.priceDelta) price += rule.priceDelta;
+          if (rule.priceMultiplier) price *= parseFloat(rule.priceMultiplier);
+          if (rule.priceDelta) price += parseFloat(rule.priceDelta);
         }
       });
 
-      const departure = new Date(t.departureTime);
       const arrival = new Date(t.arrivalTimeExpected);
-
       const durationMs = arrival - departure;
       const hours = Math.floor(durationMs / (1000 * 60 * 60));
       const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -315,9 +305,11 @@ export const searchTrips = async (req, res) => {
         arrival_time_expected: t.arrivalTimeExpected,
         duration: `${hours} giờ ${minutes} phút`,
         price: Math.round(price),
-        bus_type: busType.typeName, // 🔥 FIX 3
+        bus_type: busType.typeName,
       };
-    }).filter(Boolean);
+    }));
+
+    const result = mapped.filter(Boolean);
 
     res.json(result);
 
