@@ -1,0 +1,16 @@
+{
+  "name": "oceanbus-e2e",
+  "version": "1.0.0",
+  "scripts": {
+    "test":        "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:step1":  "playwright test tests/01_search.spec.js --headed",
+    "test:step2":  "playwright test tests/02_booking.spec.js --headed",
+    "test:step3":  "playwright test tests/03_payment.spec.js --headed",
+    "test:step4":  "playwright test tests/04_confirm.spec.js --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}
