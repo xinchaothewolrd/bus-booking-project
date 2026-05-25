@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { motion } from "framer-motion";
 import { ArrowRight, QrCode } from 'lucide-react';
 
-export default function TicketCard({ ticket, onShowTicket }) {
+const TicketCard = forwardRef(({ ticket, onShowTicket }, ref) => {
   const isUpcoming = ticket.statusTicket === 'unused' || ticket.statusTicket === 'cancelled';
 
   return (
     <motion.div 
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       layout
@@ -84,4 +85,6 @@ export default function TicketCard({ ticket, onShowTicket }) {
       </div>
     </motion.div>
   );
-}
+});
+
+export default TicketCard;
