@@ -76,11 +76,11 @@
 //   await releaseExpiredSeats();
 // });
 
+import 'dotenv/config'; // Tải biến môi trường ngay đầu tiên
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io'; // Trùm cuối realtime
 import cors from "cors";
-import dotenv from 'dotenv';
 import { connectDB } from './libs/db.js';
 import authRoute from './routes/authRoute.js';
 import cron  from 'node-cron';
@@ -104,7 +104,7 @@ import routeFareRoute from './routes/routeFareRoute.js';
 import priceRuleRoute from './routes/priceRuleRoute.js';
 import routeStopRoute from './routes/routeStopRoute.js';
 
-dotenv.config();
+
 const app = express();
 const server = http.createServer(app); // Cực kỳ quan trọng
 const PORT = process.env.PORT || 3000;
