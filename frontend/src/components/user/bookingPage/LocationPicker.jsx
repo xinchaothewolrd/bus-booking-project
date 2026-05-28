@@ -2,19 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, ChevronDown, Check } from 'lucide-react';
 
-const MOCK_LOCATIONS = {
-  pickup: [
-    { id: 'p1', name: 'Bến xe trung tâm Ninh Thuận', time: '21:00', address: 'Quốc lộ 1A, TP. Phan Rang' },
-    { id: 'p2', name: 'Văn phòng Phan Rang', time: '21:30', address: '123 Thống Nhất, TP. Phan Rang' },
-    { id: 'p3', name: 'Ngã 5 Phủ Hà', time: '21:45', address: 'Điểm đón dọc đường' },
-  ],
-  dropoff: [
-    { id: 'd1', name: 'Bến xe Miền Đông Mới', time: '05:00 (+1)', address: '501 Hoàng Hữu Nam, TP. Thủ Đức' },
-    { id: 'd2', name: 'Bến xe Miền Tây', time: '06:00 (+1)', address: '395 Kinh Dương Vương, Bình Tân' },
-    { id: 'd3', name: 'Văn phòng Quận 5', time: '05:30 (+1)', address: '456 Lê Hồng Phong, Quận 5' },
-  ]
-};
-
 export default function LocationPicker({ locations, selectedPickup, setSelectedPickup, selectedDropoff, setSelectedDropoff }) {
   // State quản lý xem dropdown nào đang mở: 'pickup', 'dropoff', hoặc null
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -82,7 +69,7 @@ export default function LocationPicker({ locations, selectedPickup, setSelectedP
                 transition={{ duration: 0.15, ease: "easeOut" }}
                 className="absolute left-0 top-[calc(100%+8px)] w-[280px] sm:w-full bg-[#0f1524] border border-primary/30 rounded-2xl shadow-2xl z-50 p-2 space-y-1.5 max-h-[220px] overflow-y-auto custom-scrollbar backdrop-blur-xl"
               >
-                {locations.pickup.map((loc) => { // 👈 SỬA Ở ĐÂY
+                {locations.pickup.map((loc) => { 
                   const isSelected = selectedPickup?.id === loc.id;
                   return (
                     <div
@@ -148,10 +135,10 @@ export default function LocationPicker({ locations, selectedPickup, setSelectedP
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                // Dùng right-0 md:left-0 để tránh bị tràn màn hình trên mobile
+ 
                 className="absolute right-0 md:left-0 top-[calc(100%+8px)] w-[280px] sm:w-full bg-[#0f1524] border border-tertiary/30 rounded-2xl shadow-2xl z-50 p-2 space-y-1.5 max-h-[220px] overflow-y-auto custom-scrollbar backdrop-blur-xl"
               >
-                {locations.dropoff.map((loc) => { // 👈 SỬA Ở ĐÂY
+                {locations.dropoff.map((loc) => { 
                   const isSelected = selectedDropoff?.id === loc.id;
                   return (
                     <div

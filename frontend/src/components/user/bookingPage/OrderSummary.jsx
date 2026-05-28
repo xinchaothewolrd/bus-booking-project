@@ -1,25 +1,32 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2 } from 'lucide-react';
-// Import SummaryRow vào đây
+import { ArrowRight, Loader2 } from "lucide-react";
 
 function SummaryRow({ label, value, isPrimary = false, isAccent = false }) {
   return (
     <div className="flex justify-between items-start gap-4">
       <span className="text-on-surface-variant">{label}</span>
-      <span className={`
+      <span
+        className={`
         font-bold text-right
-        ${isPrimary ? 'text-primary' : ''}
-        ${isAccent ? 'text-tertiary' : ''}
-        ${!isPrimary && !isAccent ? 'text-on-surface' : ''}
-      `}>
+        ${isPrimary ? "text-primary" : ""}
+        ${isAccent ? "text-tertiary" : ""}
+        ${!isPrimary && !isAccent ? "text-on-surface" : ""}
+      `}
+      >
         {value}
       </span>
     </div>
   );
 }
 
-export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPrice, onCheckout, isSubmitting }) {
-
+export default function OrderSummary({
+  trip,
+  selectedSeats,
+  totalPrice,
+  seatPrice,
+  onCheckout,
+  isSubmitting,
+}) {
   const route = trip?.route;
   const bus = trip?.bus;
 
@@ -34,52 +41,58 @@ export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPric
     : "Đang tải...";
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.2 }}
       className="glass-elevated rounded-2xl p-6 border-t-[3px] border-primary"
     >
-      <h3 className="text-lg font-bold text-on-surface mb-5">Tóm tắt đơn hàng</h3>
+      <h3 className="text-lg font-bold text-on-surface mb-5">
+        Tóm tắt đơn hàng
+      </h3>
       <div className="space-y-3 text-sm mb-6">
-        <SummaryRow label="Loại xe" value={bus?.busType?.typeName || "—"} isPrimary />
-{/* 
-        <SummaryRow 
-          label="Lộ trình" 
-          value={`${route?.departureLocation || ""} → ${route?.arrivalLocation || ""}`} 
+        <SummaryRow
+          label="Loại xe"
+          value={bus?.busType?.typeName || "—"}
+          isPrimary
         />
 
-        <SummaryRow label="Thời gian" value={formattedTime} /> */}
-
-        <SummaryRow 
-          label="Ghế đã chọn" 
-          value={selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Chưa chọn'} 
-          isAccent 
+        <SummaryRow
+          label="Ghế đã chọn"
+          value={
+            selectedSeats.length > 0 ? selectedSeats.join(", ") : "Chưa chọn"
+          }
+          isAccent
         />
 
-        <SummaryRow 
-          label="Giá vé" 
-          value={`${seatPrice} đ / vé`} 
-        />
+        <SummaryRow label="Giá vé" value={`${seatPrice} đ / vé`} />
       </div>
-      
+
       <div className="border-t border-outline-variant pt-4 mb-8">
         <div className="flex justify-between items-center">
-          <span className="text-base font-semibold text-on-surface-variant">Tổng thanh toán</span>
+          <span className="text-base font-semibold text-on-surface-variant">
+            Tổng thanh toán
+          </span>
           <div className="text-right">
-            <span className="text-2xl font-black text-primary">{totalPrice.toLocaleString()} đ</span>
-            <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">Đã bao gồm VAT</p>
+            <span className="text-2xl font-black text-primary">
+              {totalPrice.toLocaleString()} đ
+            </span>
+            <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">
+              Đã bao gồm VAT
+            </p>
           </div>
         </div>
       </div>
 
-      <motion.button 
+      <motion.button
         onClick={onCheckout}
         disabled={selectedSeats.length === 0 || isSubmitting}
         className={`w-full h-14 rounded-xl flex items-center justify-center gap-2 font-black text-lg transition-all
-          ${(selectedSeats.length === 0 || isSubmitting)
-            ? "bg-gray-400 cursor-not-allowed text-white/50"
-            : "bg-primary text-on-primary hover:brightness-110"}
+          ${
+            selectedSeats.length === 0 || isSubmitting
+              ? "bg-gray-400 cursor-not-allowed text-white/50"
+              : "bg-primary text-on-primary hover:brightness-110"
+          }
         `}
       >
         {isSubmitting ? (
@@ -94,9 +107,17 @@ export default function OrderSummary({ trip, selectedSeats, totalPrice, seatPric
           </>
         )}
       </motion.button>
-      
+
       <p className="text-[11px] text-center text-on-surface-variant mt-5 leading-relaxed">
-        Bằng việc bấm Thanh toán, bạn đồng ý với <a href="#" className="text-primary hover:underline font-semibold">Điều khoản dịch vụ</a> và <a href="#" className="text-primary hover:underline font-semibold">Chính sách bảo mật</a> của chúng tôi.
+        Bằng việc bấm Thanh toán, bạn đồng ý với{" "}
+        <a href="#" className="text-primary hover:underline font-semibold">
+          Điều khoản dịch vụ
+        </a>{" "}
+        và{" "}
+        <a href="#" className="text-primary hover:underline font-semibold">
+          Chính sách bảo mật
+        </a>{" "}
+        của chúng tôi.
       </p>
     </motion.div>
   );

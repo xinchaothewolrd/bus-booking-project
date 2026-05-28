@@ -1,5 +1,5 @@
-import { SunMedium, Sun, Sunset, Moon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { SunMedium, Sun, Sunset, Moon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getAllBusType } from "../../../services/busTypeService";
 
 export default function Sidebar({ filters, setFilters }) {
@@ -13,8 +13,7 @@ export default function Sidebar({ filters, setFilters }) {
 
         const res = await getAllBusType();
 
-        setBusTypes(res.data); // 👈 QUAN TRỌNG
-
+        setBusTypes(res.data);
       } catch (error) {
         console.error("Lỗi fetch bus types:", error);
       } finally {
@@ -28,11 +27,10 @@ export default function Sidebar({ filters, setFilters }) {
   return (
     <aside className="w-full lg:w-72 space-y-6">
       <div className="glass-card p-6 rounded-2xl">
-        
         {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-bold text-lg text-primary-ice">Bộ lọc</h2>
-          <button 
+          <button
             className="text-xs text-slate-400 hover:text-primary-ice uppercase tracking-wider 
             font-semibold cursor-pointer transition-colors"
             onClick={() =>
@@ -49,13 +47,15 @@ export default function Sidebar({ filters, setFilters }) {
 
         {/* TIME */}
         <div className="mb-8">
-          <label className="block text-sm font-semibold mb-4 text-slate-200">Khung giờ</label>
+          <label className="block text-sm font-semibold mb-4 text-slate-200">
+            Khung giờ
+          </label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { icon: SunMedium, label: 'Sáng' },
-              { icon: Sun, label: 'Trưa' },
-              { icon: Sunset, label: 'Chiều' },
-              { icon: Moon, label: 'Tối' },
+              { icon: SunMedium, label: "Sáng" },
+              { icon: Sun, label: "Trưa" },
+              { icon: Sunset, label: "Chiều" },
+              { icon: Moon, label: "Tối" },
             ].map((item) => (
               <button
                 key={item.label}
@@ -66,9 +66,10 @@ export default function Sidebar({ filters, setFilters }) {
                   }))
                 }
                 className={`p-2 text-xs border rounded-lg flex flex-col items-center gap-1 cursor-pointer
-                  ${filters.time === item.label 
-                    ? "border-primary-ice text-primary-ice bg-primary-ice/10"
-                    : "border-sky-400/10 hover:border-primary-ice hover:text-primary-ice bg-white/5"
+                  ${
+                    filters.time === item.label
+                      ? "border-primary-ice text-primary-ice bg-primary-ice/10"
+                      : "border-sky-400/10 hover:border-primary-ice hover:text-primary-ice bg-white/5"
                   }`}
               >
                 <item.icon size={16} /> {item.label}
@@ -79,15 +80,19 @@ export default function Sidebar({ filters, setFilters }) {
 
         {/* BUS TYPE (API REAL) */}
         <div className="mb-8">
-          <label className="block text-sm font-semibold mb-4 text-slate-200">Loại xe</label>
+          <label className="block text-sm font-semibold mb-4 text-slate-200">
+            Loại xe
+          </label>
 
           {loading ? (
             <p className="text-xs text-slate-400">Đang tải...</p>
           ) : (
             <div className="space-y-3">
               {busTypes.map((type) => (
-                <label key={type.id} className="flex items-center gap-3 cursor-pointer group">
-                  
+                <label
+                  key={type.id}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
                   <input
                     type="checkbox"
                     className="rounded border-sky-400/20 bg-transparent text-primary-ice w-5 h-5 cursor-pointer"
@@ -108,7 +113,6 @@ export default function Sidebar({ filters, setFilters }) {
                   <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">
                     {type.typeName}
                   </span>
-
                 </label>
               ))}
             </div>
@@ -117,7 +121,9 @@ export default function Sidebar({ filters, setFilters }) {
 
         {/* PRICE */}
         <div>
-          <label className="block text-sm font-semibold mb-4 text-slate-200">Giá vé</label>
+          <label className="block text-sm font-semibold mb-4 text-slate-200">
+            Giá vé
+          </label>
 
           <input
             type="range"
@@ -138,7 +144,6 @@ export default function Sidebar({ filters, setFilters }) {
             <span>1,500k</span>
           </div>
         </div>
-
       </div>
     </aside>
   );

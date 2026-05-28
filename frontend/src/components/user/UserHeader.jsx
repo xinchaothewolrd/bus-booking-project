@@ -2,18 +2,15 @@ import { NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import { logout } from "../../services/auth";
 
-
 export default function UserHeader() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const logOut = useAuthStore((s) => s.logOut);
-  
+
   const handleLogout = async () => {
-    const success = await logout();
-    if (success) {
-      clearUser(); // xóa user trong zustand/redux
-      navigate("/login");
-    }
+    await logOut();
+    await logout();
+    navigate("/login");
   };
 
   const navClass = ({ isActive }) =>
@@ -24,7 +21,6 @@ export default function UserHeader() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-[#0a0e1a]/60 backdrop-blur-lg border-b border-sky-400/10 shadow-[0_0_30px_rgba(125,211,252,0.05)]">
       <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-        
         <div className="text-2xl font-bold tracking-tight text-sky-300">
           OceanBus
         </div>
@@ -45,14 +41,12 @@ export default function UserHeader() {
           <NavLink to="/ticket" className={navClass}>
             Vé của tôi
           </NavLink>
-        </div> 
+        </div>
 
         <div className="flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-2">
-              <span className="text-sky-300">
-                Xin chào, {user.fullName}
-              </span>
+              <span className="text-sky-300">Xin chào, {user.fullName}</span>
 
               <button
                 className="px-4 py-2 text-slate-400 hover:text-sky-200 transition-colors active:scale-95 duration-200"

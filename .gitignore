@@ -1,1 +1,13 @@
 backend/.env
+frontend/.env
+
+backend/node_modules
+frontend/node_modules
+e2e-tests/node_modules
+
+frontend/dist
+
+backend/logs
+
+e2e-tests/.cache
+frontend/.vite
