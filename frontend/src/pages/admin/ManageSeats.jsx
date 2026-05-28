@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080/api";
-const WS_URL   = import.meta.env.VITE_WS_URL  ?? "http://localhost:8080";
+const WS_URL = import.meta.env.VITE_WS_URL ?? "http://localhost:8080";
 
 const api = axios.create({ baseURL: API_BASE });
 api.interceptors.request.use((cfg) => {
@@ -15,16 +15,16 @@ api.interceptors.request.use((cfg) => {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SEAT_STATUS = {
-  available: { label: "Trống",    color: "#059669", bg: "#f0fdf4", border: "#a7f3d0" },
-  pending:   { label: "Đang giữ", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  booked:    { label: "Đã đặt",   color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  available: { label: "Trống", color: "#059669", bg: "#f0fdf4", border: "#a7f3d0" },
+  pending: { label: "Đang giữ", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  booked: { label: "Đã đặt", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
 };
 
 const TRIP_STATUS_META = {
   scheduled: { label: "Chờ khởi hành", color: "#2563eb", bg: "#eff6ff" },
-  departing: { label: "Đang chạy",     color: "#d97706", bg: "#fffbeb" },
-  completed: { label: "Hoàn thành",    color: "#059669", bg: "#f0fdf4" },
-  cancelled: { label: "Đã hủy",        color: "#dc2626", bg: "#fef2f2" },
+  departing: { label: "Đang chạy", color: "#d97706", bg: "#fffbeb" },
+  completed: { label: "Hoàn thành", color: "#059669", bg: "#f0fdf4" },
+  cancelled: { label: "Đã hủy", color: "#dc2626", bg: "#fef2f2" },
 };
 
 function fmtDatetime(dt) {
@@ -45,8 +45,8 @@ function Toast({ msg, type, onClose }) {
       style={{ backgroundColor: type === "error" ? "#ef4444" : "#059669" }}
     >
       {type === "error"
-        ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
-        : <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" strokeWidth="2" /><path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>
+        : <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       }
       {msg}
       <button onClick={onClose} className="ml-1 opacity-70 hover:opacity-100 text-xs">✕</button>
@@ -65,10 +65,10 @@ function Spinner({ small }) {
 // ─── WS Status Indicator ──────────────────────────────────────────────────────
 function WsIndicator({ status }) {
   const cfg = {
-    connected:    { dot: "#10b981", text: "Real-time đang hoạt động", pulse: true  },
-    connecting:   { dot: "#f59e0b", text: "Đang kết nối...",          pulse: true  },
-    disconnected: { dot: "#94a3b8", text: "Chưa kết nối",             pulse: false },
-    error:        { dot: "#ef4444", text: "Mất kết nối",              pulse: false },
+    connected: { dot: "#10b981", text: "Real-time đang hoạt động", pulse: true },
+    connecting: { dot: "#f59e0b", text: "Đang kết nối...", pulse: true },
+    disconnected: { dot: "#94a3b8", text: "Chưa kết nối", pulse: false },
+    error: { dot: "#ef4444", text: "Mất kết nối", pulse: false },
   }[status] ?? { dot: "#94a3b8", text: "—", pulse: false };
 
   return (
@@ -88,7 +88,7 @@ function WsIndicator({ status }) {
 // ─── Seat Detail Modal ────────────────────────────────────────────────────────
 function SeatDetailModal({ seat, onClose, onStatusChange }) {
   const [saving, setSaving] = useState(false);
-  const [err, setErr]       = useState("");
+  const [err, setErr] = useState("");
 
   const changeStatus = async (newStatus) => {
     setSaving(true);
@@ -116,10 +116,10 @@ function SeatDetailModal({ seat, onClose, onStatusChange }) {
               className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold"
               style={{ backgroundColor: s.bg, color: s.color, boxShadow: `0 0 0 1.5px ${s.border}` }}
             >
-              {seat.seat_number}
+              {seat.seatNumber}
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">Ghế {seat.seat_number}</p>
+              <p className="text-sm font-bold text-slate-900">Ghế {seat.seatNumber}</p>
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ color: s.color, backgroundColor: s.bg }}
@@ -133,10 +133,10 @@ function SeatDetailModal({ seat, onClose, onStatusChange }) {
 
         {/* Info */}
         <div className="px-5 py-4 space-y-2">
-          {seat.status === "pending" && seat.pending_until && (
+          {seat.status === "pending" && seat.pendingUntil && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
               <p className="text-[11px] font-semibold text-amber-700">⏱ Giữ chỗ đến:</p>
-              <p className="text-xs font-bold text-amber-800 mt-0.5">{fmtDatetime(seat.pending_until)}</p>
+              <p className="text-xs font-bold text-amber-800 mt-0.5">{fmtDatetime(seat.pendingUntil)}</p>
             </div>
           )}
           {seat.status === "booked" && (
@@ -175,101 +175,105 @@ function SeatMap({ seats, onSeatClick, flashSeatId }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-slate-400">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <path d="M6 4v8M18 4v8" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M4 12h16v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" stroke="#cbd5e1" strokeWidth="1.5" fill="none"/>
-          <path d="M8 17v3M16 17v3" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round"/>
+          <path d="M6 4v8M18 4v8" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+          <path d="M4 12h16v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" stroke="#cbd5e1" strokeWidth="1.5" fill="none" />
+          <path d="M8 17v3M16 17v3" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
         </svg>
         <p className="text-sm mt-2">Không có dữ liệu ghế</p>
       </div>
     );
   }
 
-  // Group theo prefix chữ cái (A1,A2 → hàng A), nếu không có thì chunk 4
-  const rows = {};
-  seats.forEach((seat) => {
-    const key = seat.seat_number?.replace(/\d+/g, "") || "";
-    if (!rows[key]) rows[key] = [];
-    rows[key].push(seat);
-  });
+  // Tách tầng: Nếu số ghế > 22 hoặc có dấu hiệu lặp, chia đôi danh sách
+  const isDoubleFloor = seats.length > 22;
+  const floor1 = isDoubleFloor ? seats.slice(0, Math.ceil(seats.length / 2)) : seats;
+  const floor2 = isDoubleFloor ? seats.slice(Math.ceil(seats.length / 2)) : [];
 
-  let displayRows;
-  if (Object.keys(rows).length > 1) {
-    displayRows = Object.entries(rows).sort(([a], [b]) => a.localeCompare(b));
-  } else {
-    const chunks = [];
-    for (let i = 0; i < seats.length; i += 4) {
-      chunks.push([`Hàng ${Math.floor(i / 4) + 1}`, seats.slice(i, i + 4)]);
-    }
-    displayRows = chunks;
-  }
+  const renderFloor = (floorSeats, label) => {
+    const rows = {};
+    floorSeats.forEach((seat) => {
+      const key = seat.seatNumber?.replace(/\d+/g, "") || "Hàng";
+      if (!rows[key]) rows[key] = [];
+      rows[key].push(seat);
+    });
+
+    const displayRows = Object.entries(rows).sort(([a], [b]) => a.localeCompare(b));
+
+    return (
+      <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 relative">
+        <div className="absolute -top-2.5 left-4 px-2 bg-white text-[10px] font-bold text-blue-600 border border-blue-100 rounded-md shadow-sm uppercase tracking-wider">
+          {label}
+        </div>
+        <div className="space-y-4 mt-2">
+          {displayRows.map(([rowLabel, rowSeats]) => (
+            <div key={rowLabel} className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-400 w-10 text-right shrink-0">{rowLabel}</span>
+              <div className="flex gap-2 flex-wrap">
+                {[...rowSeats]
+                  .sort((a, b) =>
+                    parseInt(a.seatNumber?.replace(/\D/g, "") || 0) -
+                    parseInt(b.seatNumber?.replace(/\D/g, "") || 0)
+                  )
+                  .map((seat) => {
+                    const s = SEAT_STATUS[seat.status] ?? SEAT_STATUS.available;
+                    const isFlash = flashSeatId === seat.id;
+                    return (
+                      <button
+                        key={seat.id}
+                        onClick={() => onSeatClick(seat)}
+                        className={`w-10 h-10 rounded-xl text-[11px] font-black transition-all duration-200 hover:scale-110 hover:shadow-md relative ${isFlash ? "flash-seat" : ""}`}
+                        style={{ backgroundColor: s.bg, color: s.color, boxShadow: `0 0 0 1.5px ${s.border}` }}
+                      >
+                        {seat.seatNumber}
+                        {seat.status === "pending" && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full border border-white pulse-dot" style={{ backgroundColor: "#f59e0b" }} />
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-8">
       {/* Đầu xe */}
-      <div className="flex items-center justify-center gap-2 mb-4">
+      <div className="flex items-center justify-center gap-2">
         <div className="h-px flex-1 bg-slate-200" />
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="7" width="18" height="11" rx="2.5" stroke="#64748b" strokeWidth="1.5" fill="none"/>
-            <path d="M3 11h18" stroke="#64748b" strokeWidth="1.2"/>
-            <circle cx="7.5" cy="18" r="1.5" fill="#64748b"/>
-            <circle cx="16.5" cy="18" r="1.5" fill="#64748b"/>
-          </svg>
-          <span className="text-[11px] font-bold text-slate-500">Đầu xe</span>
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phía trước (Đầu xe)</span>
         </div>
         <div className="h-px flex-1 bg-slate-200" />
       </div>
 
-      {displayRows.map(([rowLabel, rowSeats]) => (
-        <div key={rowLabel} className="flex items-center gap-3">
-          <span className="text-[11px] font-bold text-slate-400 w-14 text-right shrink-0">{rowLabel}</span>
-          <div className="flex gap-2 flex-wrap">
-            {[...rowSeats]
-              .sort((a, b) =>
-                parseInt(a.seat_number?.replace(/\D/g, "") || 0) -
-                parseInt(b.seat_number?.replace(/\D/g, "") || 0)
-              )
-              .map((seat) => {
-                const s       = SEAT_STATUS[seat.status] ?? SEAT_STATUS.available;
-                const isFlash = flashSeatId === seat.id;
-                return (
-                  <button
-                    key={seat.id}
-                    onClick={() => onSeatClick(seat)}
-                    title={`Ghế ${seat.seat_number} — ${s.label}`}
-                    className={`w-11 h-11 rounded-xl text-xs font-extrabold transition-all duration-200 hover:scale-110 hover:shadow-md relative ${isFlash ? "flash-seat" : ""}`}
-                    style={{ backgroundColor: s.bg, color: s.color, boxShadow: `0 0 0 1.5px ${s.border}` }}
-                  >
-                    {seat.seat_number}
-                    {seat.status === "pending" && (
-                      <span
-                        className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white pulse-dot"
-                        style={{ backgroundColor: "#f59e0b" }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-      ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {renderFloor(floor1, "Tầng dưới")}
+        {isDoubleFloor && renderFloor(floor2, "Tầng trên")}
+      </div>
     </div>
   );
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ManageSeats() {
-  const [trips, setTrips]               = useState([]);
-  const [routes, setRoutes]             = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [buses, setBuses] = useState([]);
+  const [fares, setFares] = useState([]);
+  const [rules, setRules] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
-  const [seats, setSeats]               = useState([]);
+  const [seats, setSeats] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [loadingSeats, setLoadingSeats] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState(null);
-  const [toast, setToast]               = useState(null);
-  const [searchTrip, setSearchTrip]     = useState("");
-  const [wsStatus, setWsStatus]         = useState("disconnected");
-  const [flashSeatId, setFlashSeatId]   = useState(null);
+  const [toast, setToast] = useState(null);
+  const [searchTrip, setSearchTrip] = useState("");
+  const [wsStatus, setWsStatus] = useState("disconnected");
+  const [flashSeatId, setFlashSeatId] = useState(null);
 
   const socketRef = useRef(null);
   const showToast = (msg, type = "success") => setToast({ msg, type });
@@ -278,12 +282,74 @@ export default function ManageSeats() {
   const fetchTrips = useCallback(async () => {
     setLoadingTrips(true);
     try {
-      const [t, r] = await Promise.all([api.get("/trips"), api.get("/routes")]);
+      const [t, r, b, f, ru] = await Promise.all([
+        api.get("/trips"),
+        api.get("/routes"),
+        api.get("/buses"),
+        api.get("/route-fares"),
+        api.get("/price-rules"),
+      ]);
       setTrips(Array.isArray(t.data) ? t.data : t.data.data ?? []);
       setRoutes(Array.isArray(r.data) ? r.data : r.data.data ?? []);
+      setBuses(Array.isArray(b.data) ? b.data : b.data.data ?? []);
+      setFares(Array.isArray(f.data) ? f.data : f.data.data ?? []);
+      setRules(Array.isArray(ru.data) ? ru.data : ru.data.data ?? []);
     } catch { showToast("Không thể tải danh sách chuyến xe", "error"); }
     finally { setLoadingTrips(false); }
   }, []);
+
+  const getTripPrice = useCallback((trip) => {
+    if (!trip) return 0;
+    if (trip.price !== undefined && trip.price !== null) {
+      if (Number(trip.price) > 0) return Number(trip.price);
+    }
+    
+    const rId = trip.routeId || trip.route_id;
+    const bId = trip.busId || trip.bus_id;
+    
+    const bus = buses.find((b) => b.id == bId);
+    const btId = trip.busTypeId || trip.bus_type_id || bus?.busTypeId || bus?.bus_type_id || bus?.busType?.id;
+
+    if (!rId || !btId) return 0;
+
+    const fare = fares.find(
+      (f) =>
+        (f.routeId == rId || f.route_id == rId) &&
+        (f.busTypeId == btId || f.bus_type_id == btId)
+    );
+
+    if (!fare) return 0;
+    let price = parseFloat(fare.basePrice || fare.base_price || 0);
+
+    const departureDate = new Date(trip.departureTime || trip.departure_time);
+    
+    const activeRules = rules
+      .filter((r) => r.status === "active" || r.status === true)
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
+    activeRules.forEach((rule) => {
+      const matchRoute =
+        (!rule.routeId && !rule.route_id) ||
+        rule.routeId == rId ||
+        rule.route_id == rId;
+
+      const matchBusType =
+        (!rule.busTypeId && !rule.bus_type_id) ||
+        rule.busTypeId == btId ||
+        rule.bus_type_id == btId;
+
+      const ruleStart = new Date(rule.startDate || rule.start_date);
+      const ruleEnd = new Date(rule.endDate || rule.end_date);
+      const matchTime = departureDate >= ruleStart && departureDate <= ruleEnd;
+
+      if (matchRoute && matchBusType && matchTime) {
+        if (rule.priceMultiplier) price *= parseFloat(rule.priceMultiplier);
+        if (rule.priceDelta) price += parseFloat(rule.priceDelta);
+      }
+    });
+
+    return Math.round(price);
+  }, [buses, fares, rules]);
 
   useEffect(() => { fetchTrips(); }, [fetchTrips]);
 
@@ -292,7 +358,7 @@ export default function ManageSeats() {
     if (!tripId) return;
     setLoadingSeats(true);
     try {
-      const { data } = await api.get(`/trip-seats?trip_id=${tripId}`);
+      const { data } = await api.get(`/trip-seats/trip/${tripId}`);
       setSeats(Array.isArray(data) ? data : data.data ?? []);
     } catch { showToast("Không thể tải sơ đồ ghế", "error"); }
     finally { setLoadingSeats(false); }
@@ -328,7 +394,7 @@ export default function ManageSeats() {
 
     // Nhận update ghế real-time từ BE
     socket.on("seat-updated", (updated) => {
-      // updated = { id, trip_id, seat_number, status, pending_until }
+      // updated = { id, tripId, seatNumber, status, pendingUntil }
       setSeats((prev) =>
         prev.map((s) => s.id === updated.id ? { ...s, ...updated } : s)
       );
@@ -369,10 +435,10 @@ export default function ManageSeats() {
 
   // ── Stats ─────────────────────────────────────────────────────────────────────
   const seatStats = {
-    total:     seats.length,
+    total: seats.length,
     available: seats.filter((s) => s.status === "available").length,
-    pending:   seats.filter((s) => s.status === "pending").length,
-    booked:    seats.filter((s) => s.status === "booked").length,
+    pending: seats.filter((s) => s.status === "pending").length,
+    booked: seats.filter((s) => s.status === "booked").length,
   };
   const occupancyPct = seats.length
     ? Math.round(((seatStats.booked + seatStats.pending) / seats.length) * 100)
@@ -382,11 +448,11 @@ export default function ManageSeats() {
 
   const filteredTrips = trips.filter((t) => {
     if (!searchTrip) return true;
-    const route = getRoute(t.route_id);
+    const route = getRoute(t.routeId);
     const q = searchTrip.toLowerCase();
     return (
-      route?.departure_location?.toLowerCase().includes(q) ||
-      route?.arrival_location?.toLowerCase().includes(q) ||
+      route?.departureLocation?.toLowerCase().includes(q) ||
+      route?.arrivalLocation?.toLowerCase().includes(q) ||
       String(t.id).includes(q)
     );
   });
@@ -413,17 +479,17 @@ export default function ManageSeats() {
           {selectedTrip && <WsIndicator status={wsStatus} />}
         </div>
 
-        <div className="flex gap-5 flex-col xl:flex-row">
+        <div className="flex gap-5 flex-col lg:flex-row items-start">
 
           {/* ── Left: Trip list ── */}
-          <div className="xl:w-80 shrink-0">
+          <div className="lg:w-80 w-full shrink-0">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-4 py-3.5 border-b border-slate-100">
                 <p className="text-xs font-extrabold tracking-widest text-slate-400 uppercase mb-2">Chọn chuyến xe</p>
                 <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="7" stroke="#94a3b8" strokeWidth="2"/>
-                    <path d="M16.5 16.5L21 21" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="11" cy="11" r="7" stroke="#94a3b8" strokeWidth="2" />
+                    <path d="M16.5 16.5L21 21" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                   <input
                     value={searchTrip} onChange={(e) => setSearchTrip(e.target.value)}
@@ -437,8 +503,8 @@ export default function ManageSeats() {
                 {loadingTrips ? <Spinner small /> : filteredTrips.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-8">Không có chuyến xe nào</p>
                 ) : filteredTrips.map((trip) => {
-                  const route  = getRoute(trip.route_id);
-                  const tm     = TRIP_STATUS_META[trip.status] ?? TRIP_STATUS_META.scheduled;
+                  const route = getRoute(trip.routeId);
+                  const tm = TRIP_STATUS_META[trip.status] ?? TRIP_STATUS_META.scheduled;
                   const active = selectedTrip?.id === trip.id;
                   return (
                     <button
@@ -455,11 +521,11 @@ export default function ManageSeats() {
                           <p className="text-xs font-bold text-slate-500 font-mono">#{trip.id}</p>
                           {route ? (
                             <div className="mt-0.5">
-                              <p className="text-sm font-semibold text-slate-800 truncate leading-tight">{route.departure_location}</p>
-                              <p className="text-xs text-slate-400 truncate">→ {route.arrival_location}</p>
+                              <p className="text-sm font-semibold text-slate-800 truncate leading-tight">{route.departureLocation}</p>
+                              <p className="text-xs text-slate-400 truncate">→ {route.arrivalLocation}</p>
                             </div>
                           ) : <p className="text-xs text-slate-400">—</p>}
-                          <p className="text-[11px] text-slate-400 mt-1">{fmtDatetime(trip.departure_time)}</p>
+                          <p className="text-[11px] text-slate-400 mt-1">{fmtDatetime(trip.departureTime)}</p>
                         </div>
                         <span
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5"
@@ -480,9 +546,9 @@ export default function ManageSeats() {
             {!selectedTrip ? (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center py-24 text-slate-400">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 4v8M18 4v8" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round"/>
-                  <path d="M4 12h16v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" stroke="#cbd5e1" strokeWidth="1.5" fill="none"/>
-                  <path d="M8 17v3M16 17v3" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M6 4v8M18 4v8" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M4 12h16v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" stroke="#cbd5e1" strokeWidth="1.5" fill="none" />
+                  <path d="M8 17v3M16 17v3" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
                 <p className="text-sm mt-3 font-medium">Chọn một chuyến xe để xem sơ đồ ghế</p>
                 <p className="text-xs mt-1 text-slate-300">Danh sách bên trái</p>
@@ -503,22 +569,22 @@ export default function ManageSeats() {
                         </span>
                       </div>
                       {(() => {
-                        const r = getRoute(selectedTrip.route_id);
+                        const r = getRoute(selectedTrip.routeId);
                         return r ? (
                           <p className="text-base font-bold text-slate-900">
-                            {r.departure_location} <span className="text-slate-400 font-normal">→</span> {r.arrival_location}
+                            {r.departureLocation} <span className="text-slate-400 font-normal">→</span> {r.arrivalLocation}
                           </p>
                         ) : null;
                       })()}
-                      <p className="text-xs text-slate-400 mt-0.5">{fmtDatetime(selectedTrip.departure_time)} · {fmtPrice(selectedTrip.price)}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{fmtDatetime(selectedTrip.departureTime)} · {fmtPrice(getTripPrice(selectedTrip))}</p>
                     </div>
                     <button
                       onClick={() => fetchSeats(selectedTrip.id)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <path d="M4 12a8 8 0 018-8 8 8 0 017.3 4.7M20 12a8 8 0 01-8 8 8 8 0 01-7.3-4.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M20 4v4h-4M4 20v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 12a8 8 0 018-8 8 8 0 017.3 4.7M20 12a8 8 0 01-8 8 8 8 0 01-7.3-4.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M20 4v4h-4M4 20v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       Tải lại
                     </button>
@@ -528,10 +594,10 @@ export default function ManageSeats() {
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { label: "Tổng ghế",  value: seatStats.total,     color: "#64748b", bg: "#f1f5f9" },
+                    { label: "Tổng ghế", value: seatStats.total, color: "#64748b", bg: "#f1f5f9" },
                     { label: "Còn trống", value: seatStats.available, color: "#059669", bg: "#f0fdf4" },
-                    { label: "Đang giữ",  value: seatStats.pending,   color: "#d97706", bg: "#fffbeb" },
-                    { label: "Đã đặt",    value: seatStats.booked,    color: "#dc2626", bg: "#fef2f2" },
+                    { label: "Đang giữ", value: seatStats.pending, color: "#d97706", bg: "#fffbeb" },
+                    { label: "Đã đặt", value: seatStats.booked, color: "#dc2626", bg: "#fef2f2" },
                   ].map(({ label, value, color, bg }) => (
                     <div key={label} className="bg-white rounded-2xl border border-slate-100 p-3.5 shadow-sm text-center">
                       <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>

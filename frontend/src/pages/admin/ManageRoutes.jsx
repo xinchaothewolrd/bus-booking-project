@@ -30,7 +30,7 @@ function fmtDistance(km) {
 
 function exportCSV(routes) {
   const header = ["ID", "Điểm đi", "Điểm đến", "Khoảng cách (km)", "Thời gian dự kiến"];
-  const rows = routes.map((r) => [r.id, r.departure_location, r.arrival_location, r.distance_km ?? "", r.duration_est ?? ""]);
+  const rows = routes.map((r) => [r.id, r.departureLocation, r.arrivalLocation, r.distanceKm ?? "", r.durationEst ?? ""]);
   const csv = [header, ...rows].map((row) => row.map((c) => `"${c}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -77,7 +77,7 @@ function ConfirmModal({ route, onClose, onConfirm, loading }) {
         <p className="font-bold text-slate-900 mb-1">Xóa tuyến đường?</p>
         <p className="text-xs text-slate-400 mb-1">Bạn sắp xóa tuyến</p>
         <p className="text-sm font-semibold text-slate-700 mb-2">
-          "{route?.departure_location} → {route?.arrival_location}"
+          "{route?.departureLocation} → {route?.arrivalLocation}"
         </p>
         <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-5">
           ⚠️ Các chuyến xe thuộc tuyến này cũng có thể bị ảnh hưởng.
@@ -100,10 +100,10 @@ function ConfirmModal({ route, onClose, onConfirm, loading }) {
 
 // ─── Route Modal (Add / Edit) ─────────────────────────────────────────────────
 const EMPTY_FORM = {
-  departure_location: "",
-  arrival_location: "",
-  distance_km: "",
-  duration_est: "",
+  departureLocation: "",
+  arrivalLocation: "",
+  distanceKm: "",
+  durationEst: "",
 };
 
 function RouteModal({ route, onClose, onSave }) {
@@ -112,19 +112,56 @@ function RouteModal({ route, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const isEdit = !!route?.id;
 
+  const [busTypes, setBusTypes] = useState([]);
+  const [faresMap, setFaresMap] = useState({});
+  const [loadingFares, setLoadingFares] = useState(false);
+
   const set = (key, val) => {
     setForm((p) => ({ ...p, [key]: val }));
     setErrors((p) => ({ ...p, [key]: "" }));
   };
 
+  useEffect(() => {
+    const initModal = async () => {
+      setLoadingFares(true);
+      try {
+        const [btRes, fRes] = await Promise.all([
+          api.get("/bus-types"),
+          isEdit ? api.get("/route-fares") : Promise.resolve({ data: [] })
+        ]);
+        const btypes = Array.isArray(btRes.data) ? btRes.data : btRes.data.data ?? [];
+        setBusTypes(btypes);
+
+        if (isEdit) {
+          const allFares = Array.isArray(fRes.data) ? fRes.data : fRes.data.data ?? [];
+          const routeFares = allFares.filter(f => f.routeId == route.id || f.route_id == route.id);
+          const fMap = {};
+          routeFares.forEach(f => {
+            const btId = f.busTypeId || f.bus_type_id;
+            fMap[btId] = {
+              id: f.id,
+              basePrice: f.basePrice || f.base_price || 0
+            };
+          });
+          setFaresMap(fMap);
+        }
+      } catch (err) {
+        console.error("Lỗi tải loại xe và bảng giá:", err);
+      } finally {
+        setLoadingFares(false);
+      }
+    };
+    initModal();
+  }, [isEdit, route]);
+
   const validate = () => {
     const e = {};
-    if (!form.departure_location.trim()) e.departure_location = "Không được để trống";
-    if (!form.arrival_location.trim())   e.arrival_location   = "Không được để trống";
-    if (form.departure_location.trim() === form.arrival_location.trim()) {
-      e.arrival_location = "Điểm đến phải khác điểm đi";
+    if (!form.departureLocation.trim()) e.departureLocation = "Không được để trống";
+    if (!form.arrivalLocation.trim())   e.arrivalLocation   = "Không được để trống";
+    if (form.departureLocation.trim() === form.arrivalLocation.trim()) {
+      e.arrivalLocation = "Điểm đến phải khác điểm đi";
     }
-    if (form.distance_km && isNaN(Number(form.distance_km))) e.distance_km = "Phải là số";
+    if (form.distanceKm && isNaN(Number(form.distanceKm))) e.distanceKm = "Phải là số";
     return e;
   };
 
@@ -134,40 +171,50 @@ function RouteModal({ route, onClose, onSave }) {
     setSaving(true);
     const payload = {
       ...form,
-      distance_km: form.distance_km ? Number(form.distance_km) : null,
+      distanceKm: form.distanceKm ? Number(form.distanceKm) : null,
     };
     try {
+      let savedRoute;
       if (isEdit) {
         const { data } = await api.put(`/routes/${form.id}`, payload);
-        onSave(data);
+        savedRoute = data.data || data;
       } else {
         const { data } = await api.post("/routes", payload);
-        onSave(data);
+        savedRoute = data.data || data;
       }
+
+      // Lưu song song thông tin bảng giá cho tuyến xe này
+      const routeId = savedRoute.id;
+      const farePromises = busTypes.map(async (bt) => {
+        const price = faresMap[bt.id]?.basePrice ?? "";
+        const existing = faresMap[bt.id];
+
+        if (price === "" || price === undefined || price === null) return;
+
+        if (existing?.id) {
+          // Update existing
+          await api.put(`/route-fares/${existing.id}`, { basePrice: Number(price) });
+        } else {
+          // Create new
+          await api.post("/route-fares", {
+            routeId,
+            busTypeId: bt.id,
+            basePrice: Number(price)
+          });
+        }
+      });
+
+      await Promise.all(farePromises);
+
+      onSave(savedRoute);
     } catch {
       setErrors({ _global: "Lưu thất bại, thử lại." });
     } finally { setSaving(false); }
   };
 
-  const Field = ({ fkey, label, placeholder, type = "text", hint }) => (
-    <div>
-      <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-      <input
-        type={type}
-        value={form[fkey] ?? ""}
-        onChange={(e) => set(fkey, e.target.value)}
-        placeholder={placeholder}
-        className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 outline-none transition
-          ${errors[fkey] ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-emerald-400 focus:ring-2 ring-emerald-50"}`}
-      />
-      {errors[fkey] && <p className="text-[11px] text-red-500 mt-1">{errors[fkey]}</p>}
-      {hint && !errors[fkey] && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -192,8 +239,8 @@ function RouteModal({ route, onClose, onSave }) {
           {/* Route visual */}
           <div className="bg-slate-50 rounded-xl p-4 flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Điểm đi</p>
-              <p className="text-sm font-semibold text-slate-700 truncate">{form.departure_location || "—"}</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Điểm đi</p>
+              <p className="text-sm font-semibold text-slate-700 truncate">{form.departureLocation || "—"}</p>
             </div>
             <div className="shrink-0 flex items-center gap-1 text-slate-300">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -202,22 +249,65 @@ function RouteModal({ route, onClose, onSave }) {
               <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
             </div>
             <div className="flex-1 min-w-0 text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Điểm đến</p>
-              <p className="text-sm font-semibold text-slate-700 truncate">{form.arrival_location || "—"}</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Điểm đến</p>
+              <p className="text-sm font-semibold text-slate-700 truncate">{form.arrivalLocation || "—"}</p>
             </div>
           </div>
 
-          <Field fkey="departure_location" label="Điểm đi *" placeholder="VD: Hồ Chí Minh" />
-          <Field fkey="arrival_location"   label="Điểm đến *" placeholder="VD: Đà Lạt" />
+          <Field fkey="departureLocation" label="Điểm đi *" placeholder="VD: Hồ Chí Minh" form={form} set={set} errors={errors} />
+          <Field fkey="arrivalLocation"   label="Điểm đến *" placeholder="VD: Đà Lạt" form={form} set={set} errors={errors} />
 
           <div className="grid grid-cols-2 gap-3">
-            <Field fkey="distance_km" label="Khoảng cách (km)" placeholder="VD: 300" type="number" />
-            <Field fkey="duration_est" label="Thời gian dự kiến" placeholder="VD: 06:00:00" hint="Định dạng HH:MM:SS" />
+            <Field fkey="distanceKm" label="Khoảng cách (km)" placeholder="VD: 300" type="number" form={form} set={set} errors={errors} />
+            <Field fkey="durationEst" label="Thời gian dự kiến" placeholder="VD: 06:00:00" hint="Định dạng HH:MM:SS" form={form} set={set} errors={errors} />
+          </div>
+
+          {/* Cấu hình giá mặc định theo loại xe */}
+          <div className="border-t border-slate-100 pt-4">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">
+              Giá vé mặc định theo loại xe
+            </h3>
+            {loadingFares ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-5 h-5 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+              </div>
+            ) : busTypes.length === 0 ? (
+              <p className="text-xs text-slate-400">Không tìm thấy loại xe nào trong hệ thống.</p>
+            ) : (
+              <div className="space-y-3">
+                {busTypes.map((bt) => (
+                  <div key={bt.id} className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-600 min-w-[140px] truncate">
+                      {bt.typeName || bt.type_name} ({bt.totalSeats || bt.total_seats} chỗ):
+                    </span>
+                    <div className="flex-1 relative">
+                      <input
+                        type="number"
+                        value={faresMap[bt.id]?.basePrice ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFaresMap((p) => ({
+                            ...p,
+                            [bt.id]: {
+                              ...p[bt.id],
+                              basePrice: val === "" ? "" : Number(val)
+                            }
+                          }));
+                        }}
+                        placeholder="Chưa cấu hình (0đ)"
+                        className="w-full text-sm pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 ring-emerald-50 transition"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">đ</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-5 flex gap-2">
+        <div className="px-6 pb-5 flex gap-2 border-t border-slate-100 pt-4">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Hủy</button>
           <button
             onClick={handleSubmit}
@@ -227,6 +317,349 @@ function RouteModal({ route, onClose, onSave }) {
           >
             {saving && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>}
             {isEdit ? "Lưu thay đổi" : "Tạo tuyến đường"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Field = ({ fkey, label, placeholder, type = "text", hint, form, set, errors }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
+    <input
+      type={type}
+      value={form[fkey] ?? ""}
+      onChange={(e) => set(fkey, e.target.value)}
+      placeholder={placeholder}
+      className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 outline-none transition
+        ${errors[fkey] ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-emerald-400 focus:ring-2 ring-emerald-50"}`}
+    />
+    {errors[fkey] && <p className="text-[11px] text-red-500 mt-1">{errors[fkey]}</p>}
+    {hint && !errors[fkey] && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
+  </div>
+);
+
+// ─── RouteStopsModal (Manage Pick-up/Drop-off Stops) ──────────────────────────
+function RouteStopsModal({ route, onClose }) {
+  const [stops, setStops] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingStop, setEditingStop] = useState(null); // null | { ...stop } | "add"
+  const [form, setForm] = useState({
+    stopName: "",
+    address: "",
+    stopType: "pickup",
+    stopOrder: 1,
+    arriveOffsetMinutes: 0
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchStops = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/route-stops?routeId=${route.id}`);
+      setStops(Array.isArray(data) ? data : data.data ?? []);
+    } catch (err) {
+      console.error("Lỗi tải điểm đậu:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [route.id]);
+
+  useEffect(() => {
+    fetchStops();
+  }, [fetchStops]);
+
+  const handleEditClick = (stop) => {
+    setEditingStop(stop);
+    setForm({
+      stopName: stop.stopName || stop.stop_name || "",
+      address: stop.address || "",
+      stopType: stop.stopType || stop.stop_type || "pickup",
+      stopOrder: stop.stopOrder !== undefined ? stop.stopOrder : (stop.stop_order ?? 1),
+      arriveOffsetMinutes: stop.arriveOffsetMinutes !== undefined ? stop.arriveOffsetMinutes : (stop.arrive_offset_minutes ?? 0)
+    });
+    setError("");
+  };
+
+  const handleAddClick = () => {
+    setEditingStop("add");
+    // Auto-calculate next stopOrder
+    const maxOrder = stops.reduce((max, s) => {
+      const ord = s.stopOrder !== undefined ? s.stopOrder : (s.stop_order ?? 0);
+      return ord > max ? ord : max;
+    }, 0);
+    setForm({
+      stopName: "",
+      address: "",
+      stopType: "pickup",
+      stopOrder: maxOrder + 1,
+      arriveOffsetMinutes: maxOrder === 0 ? 0 : 30
+    });
+    setError("");
+  };
+
+  const handleCancelForm = () => {
+    setEditingStop(null);
+    setError("");
+  };
+
+  const handleSaveStop = async () => {
+    if (!form.stopName.trim()) {
+      setError("Tên bến/điểm đậu không được để trống.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const payload = {
+      routeId: route.id,
+      stopName: form.stopName.trim(),
+      address: form.address.trim(),
+      stopType: form.stopType,
+      stopOrder: Number(form.stopOrder),
+      arriveOffsetMinutes: Number(form.arriveOffsetMinutes)
+    };
+
+    try {
+      if (editingStop === "add") {
+        await api.post("/route-stops", payload);
+      } else {
+        await api.put(`/route-stops/${editingStop.id}`, payload);
+      }
+      fetchStops();
+      setEditingStop(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Lưu điểm đậu thất bại.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteStop = async (stopId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa điểm đậu này?")) return;
+    try {
+      await api.delete(`/route-stops/${stopId}`);
+      fetchStops();
+    } catch (err) {
+      alert("Xóa thất bại: " + (err.response?.data?.message || "Điểm dừng đang được sử dụng trong vé đặt."));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Quản lý điểm đậu / Đón trả</h2>
+              <p className="text-xs text-slate-400 font-medium">Tuyến: {route.departureLocation} → {route.arrivalLocation}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 transition">✕</button>
+        </div>
+
+        {/* Body content (scrollable list) */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {editingStop ? (
+            /* Form thêm / sửa */
+            <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 space-y-4 animate-slide-up">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                {editingStop === "add" ? "Thêm điểm đậu mới" : "Chỉnh sửa điểm đậu"}
+              </h3>
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-600">{error}</div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Tên bến / Điểm đậu *</label>
+                  <input
+                    type="text"
+                    value={form.stopName}
+                    onChange={(e) => setForm({ ...form, stopName: e.target.value })}
+                    placeholder="VD: Bến xe Phan Rang, Ngã 3 Tân Phong..."
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-semibold outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Địa chỉ chi tiết</label>
+                  <input
+                    type="text"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="VD: Số 24 Thống Nhất, Phan Rang..."
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-semibold outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Loại điểm</label>
+                    <select
+                      value={form.stopType}
+                      onChange={(e) => setForm({ ...form, stopType: e.target.value })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-bold outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+                    >
+                      <option value="pickup">Đón khách (Pickup)</option>
+                      <option value="dropoff">Trả khách (Dropoff)</option>
+                      <option value="both">Cả hai (Both)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Thứ tự chặng</label>
+                    <input
+                      type="number"
+                      value={form.stopOrder}
+                      onChange={(e) => setForm({ ...form, stopOrder: e.target.value })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-semibold outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Thời gian chênh (phút)</label>
+                    <input
+                      type="number"
+                      value={form.arriveOffsetMinutes}
+                      onChange={(e) => setForm({ ...form, arriveOffsetMinutes: e.target.value })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-semibold outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  onClick={handleCancelForm}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveStop}
+                  disabled={saving}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  {saving && <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                  Lưu điểm đậu
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Nút thêm điểm đậu */
+            <div className="flex justify-end shrink-0">
+              <button
+                onClick={handleAddClick}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-bold bg-blue-600 hover:bg-blue-700 transition shadow-sm"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+                Thêm điểm đón/trả khách
+              </button>
+            </div>
+          )}
+
+          {/* Danh sách điểm đậu (Timeline Style) */}
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-6 h-6 border-2 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+            </div>
+          ) : stops.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <p className="text-xs text-slate-600 font-semibold">Tuyến đường này chưa cấu hình các điểm đón/trả khách.</p>
+              <p className="text-[10px] text-slate-500 mt-1">Vui lòng nhấp vào nút phía trên để thêm mới.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">
+                Lộ trình chi tiết ({stops.length} điểm)
+              </h3>
+              
+              <div className="relative border-l border-slate-200 ml-3.5 pl-6 space-y-5 py-1">
+                {stops.map((stop, idx) => {
+                  const sName = stop.stopName || stop.stop_name;
+                  const sType = stop.stopType || stop.stop_type || "pickup";
+                  const sOrder = stop.stopOrder !== undefined ? stop.stopOrder : (stop.stop_order ?? 0);
+                  const sOffset = stop.arriveOffsetMinutes !== undefined ? stop.arriveOffsetMinutes : (stop.arrive_offset_minutes ?? 0);
+                  
+                  // Dot color and icons
+                  const isPickup = sType === "pickup";
+                  const isDropoff = sType === "dropoff";
+                  const dotColor = isPickup ? "bg-emerald-500 ring-emerald-100" : isDropoff ? "bg-orange-500 ring-orange-100" : "bg-blue-500 ring-blue-100";
+                  const labelColor = isPickup ? "text-emerald-700 bg-emerald-50" : isDropoff ? "text-orange-700 bg-orange-50" : "text-blue-700 bg-blue-50";
+                  const labelText = isPickup ? "Đón" : isDropoff ? "Trả" : "Cả hai";
+
+                  return (
+                    <div key={stop.id} className="relative group animate-slide-up" style={{ animationDelay: `${idx * 0.05}s` }}>
+                      {/* Timeline dot marker */}
+                      <span className={`absolute -left-10 top-0.5 w-7 h-7 rounded-full border border-white flex items-center justify-center text-[10px] font-extrabold text-white shrink-0 ${dotColor} ring-4 transition group-hover:scale-110`}>
+                        {sOrder}
+                      </span>
+
+                      {/* Content block */}
+                      <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4 hover:bg-slate-50 hover:border-slate-200 transition">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className="text-xs font-bold text-slate-800 truncate leading-tight">{sName}</h4>
+                            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase shrink-0 ${labelColor}`}>
+                              {labelText}
+                            </span>
+                            {sOffset > 0 && (
+                              <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                                +{sOffset} phút
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate">{stop.address || "Chưa có địa chỉ chi tiết"}</p>
+                        </div>
+
+                        {/* Actions for this stop */}
+                        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition shrink-0">
+                          <button
+                            onClick={() => handleEditClick(stop)}
+                            className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center text-slate-400 transition"
+                            title="Sửa điểm dừng"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStop(stop.id)}
+                            className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-slate-400 transition"
+                            title="Xóa điểm dừng"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-5 flex justify-end border-t border-slate-100 pt-4 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition shadow-sm"
+          >
+            Đóng
           </button>
         </div>
       </div>
@@ -246,6 +679,7 @@ export default function ManageRoutes() {
   const [confirmDel, setConfirmDel] = useState(null);
   const [delLoading, setDelLoading] = useState(false);
   const [toast, setToast]         = useState(null);
+  const [manageStopsRoute, setManageStopsRoute] = useState(null);
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
@@ -279,7 +713,7 @@ export default function ManageRoutes() {
     try {
       await api.delete(`/routes/${confirmDel.id}`);
       setRoutes((p) => p.filter((r) => r.id !== confirmDel.id));
-      showToast(`Đã xóa tuyến "${confirmDel.departure_location} → ${confirmDel.arrival_location}"`);
+      showToast(`Đã xóa tuyến "${confirmDel.departureLocation} → ${confirmDel.arrivalLocation}"`);
       setConfirmDel(null);
     } catch {
       showToast("Xóa thất bại", "error");
@@ -290,14 +724,14 @@ export default function ManageRoutes() {
   const filtered = routes.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return r.departure_location?.toLowerCase().includes(q) || r.arrival_location?.toLowerCase().includes(q);
+    return r.departureLocation?.toLowerCase().includes(q) || r.arrivalLocation?.toLowerCase().includes(q);
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
   const pageData   = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const totalKm = routes.reduce((s, r) => s + (r.distance_km ?? 0), 0);
+  const totalKm = routes.reduce((s, r) => s + (r.distanceKm ?? 0), 0);
   const avgKm   = routes.length ? Math.round(totalKm / routes.length) : 0;
 
   return (
@@ -315,7 +749,7 @@ export default function ManageRoutes() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight">Quản lý tuyến đường</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Thêm, sửa, xóa các tuyến xe trong hệ thống.</p>
+            <p className="text-sm text-slate-500 mt-0.5">Thêm, sửa, xóa các tuyến xe trong hệ thống.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -398,7 +832,7 @@ export default function ManageRoutes() {
               />
               {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>}
             </div>
-            <p className="ml-auto text-xs text-slate-400 font-medium shrink-0">{filtered.length} tuyến</p>
+            <p className="ml-auto text-xs text-slate-500 font-semibold shrink-0">{filtered.length} tuyến</p>
           </div>
 
           {/* Table */}
@@ -408,14 +842,14 @@ export default function ManageRoutes() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70">
                     {["#", "Tuyến đường", "Khoảng cách", "Thời gian dự kiến", "Hành động"].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-[10px] font-extrabold tracking-widest text-slate-400 uppercase whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-5 py-3 text-left text-[11px] font-extrabold tracking-widest text-slate-500 uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {pageData.length === 0 ? (
                     <tr><td colSpan={5} className="px-5 py-16 text-center">
-                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <div className="flex flex-col items-center gap-2 text-slate-500">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="9" stroke="#cbd5e1" strokeWidth="1.5"/>
                           <path d="M8 12h8M12 8v8" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round"/>
@@ -424,67 +858,77 @@ export default function ManageRoutes() {
                       </div>
                     </td></tr>
                   ) : pageData.map((r) => (
-                    <tr key={r.id} className="hover:bg-emerald-50/30 transition row-fade">
-                      <td className="px-5 py-4 text-xs font-mono text-slate-400">#{r.id}</td>
+                    <tr key={r.id} className="hover:bg-emerald-50/10 transition row-fade">
+                      <td className="px-5 py-3.5 text-[11px] font-mono text-slate-500">#{r.id}</td>
 
                       {/* Route visual cell */}
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           {/* Departure dot */}
-                          <div className="flex flex-col items-center gap-1 shrink-0">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                            <div className="w-px h-5 border-l-2 border-dashed border-slate-200" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-400 ring-2 ring-red-100" />
+                          <div className="flex flex-col items-center gap-0.5 shrink-0">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <div className="w-px h-3 border-l-2 border-dashed border-slate-200" />
+                            <div className="w-2 h-2 rounded-full bg-red-400" />
                           </div>
                           {/* Labels */}
                           <div>
-                            <p className="text-sm font-semibold text-slate-800 leading-tight">{r.departure_location}</p>
-                            <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">{r.arrival_location}</p>
+                            <p className="text-[14px] font-bold text-slate-800 leading-tight">{r.departureLocation}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{r.arrivalLocation}</p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-slate-400">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-slate-400">
                             <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                             <circle cx="5" cy="12" r="2" fill="currentColor" opacity="0.4"/>
                             <circle cx="19" cy="12" r="2" fill="currentColor" opacity="0.4"/>
                           </svg>
-                          <span className="text-sm font-medium text-slate-700">{fmtDistance(r.distance_km)}</span>
+                          <span className="text-xs font-medium text-slate-700">{fmtDistance(r.distanceKm)}</span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-slate-400">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-slate-400">
                             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
                             <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <span className="text-sm font-medium text-slate-700">{fmtDuration(r.duration_est)}</span>
+                          <span className="text-xs font-medium text-slate-700">{fmtDuration(r.durationEst)}</span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setModal(r)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 transition border border-blue-100"
                           >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>
-                            Sửa
+                            <span className="notranslate">Sửa</span>
+                          </button>
+                          <button
+                            onClick={() => setManageStopsRoute(r)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition border border-emerald-100"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
+                            </svg>
+                            <span>Điểm đậu</span>
                           </button>
                           <button
                             onClick={() => setConfirmDel(r)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 transition"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 transition border border-red-100"
                           >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                              <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                             </svg>
-                            Xóa
+                            <span className="notranslate">Xóa</span>
                           </button>
                         </div>
                       </td>
@@ -530,6 +974,9 @@ export default function ManageRoutes() {
       )}
       {confirmDel && (
         <ConfirmModal route={confirmDel} onClose={() => setConfirmDel(null)} onConfirm={handleDelete} loading={delLoading} />
+      )}
+      {manageStopsRoute && (
+        <RouteStopsModal route={manageStopsRoute} onClose={() => setManageStopsRoute(null)} />
       )}
 
       {/* Toast */}

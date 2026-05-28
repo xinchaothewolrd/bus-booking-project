@@ -1,0 +1,12 @@
+# Các thư viện nặng (KHÔNG ĐƯỢC ĐẨY LÊN)
+node_modules/
+
+# File cấu hình bảo mật (Chứa mật khẩu Database, API Key)
+.env
+
+# Các file rác của hệ điều hành hoặc VS Code
+.DS_Store
+.vscode/
+dist/
+build/
+*.log

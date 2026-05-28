@@ -13,14 +13,14 @@ api.interceptors.request.use((cfg) => {
 
 // ─── Mock data (dùng khi BE chưa sẵn sàng) ───────────────────────────────────
 const MOCK_DATA = {
-  revenue:       45_600_000,
+  revenue: 45_600_000,
   totalBookings: 128,
-  pendingCount:  12,
-  totalPaid:     98,
-  activeTrips:   5,
-  totalTrips:    42,
-  customers:     76,
-  cancelRate:    15,
+  pendingCount: 12,
+  totalPaid: 98,
+  activeTrips: 5,
+  totalTrips: 42,
+  customers: 76,
+  cancelRate: 15,
   last7: [
     { label: "T2", value: 3_200_000 },
     { label: "T3", value: 5_100_000 },
@@ -31,25 +31,25 @@ const MOCK_DATA = {
     { label: "CN", value: 11_000_000 },
   ],
   topRoutes: [
-    { name: "Hồ Chí Minh → Đà Lạt",   rev: 18_500_000 },
+    { name: "Hồ Chí Minh → Đà Lạt", rev: 18_500_000 },
     { name: "Hồ Chí Minh → Nha Trang", rev: 12_300_000 },
     { name: "Hồ Chí Minh → Vũng Tàu", rev: 8_100_000 },
-    { name: "Hà Nội → Đà Nẵng",        rev: 4_200_000 },
-    { name: "Hà Nội → Hải Phòng",      rev: 2_500_000 },
+    { name: "Hà Nội → Đà Nẵng", rev: 4_200_000 },
+    { name: "Hà Nội → Hải Phòng", rev: 2_500_000 },
   ],
   recentBookings: [
     { id: 128, user: { full_name: "Nguyễn Văn A", email: "nva@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Đà Lạt" }, booking_time: new Date().toISOString(), total_amount: 350_000, status: "paid" },
-    { id: 127, user: { full_name: "Trần Thị B",   email: "ttb@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Nha Trang" }, booking_time: new Date(Date.now() - 3600_000).toISOString(), total_amount: 420_000, status: "pending" },
-    { id: 126, user: { full_name: "Lê Hoàng C",   email: "lhc@gmail.com" }, route: { departure_location: "HN",  arrival_location: "Đà Nẵng" }, booking_time: new Date(Date.now() - 7200_000).toISOString(), total_amount: 500_000, status: "paid" },
-    { id: 125, user: { full_name: "Phạm Minh D",  email: "pmd@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Vũng Tàu" }, booking_time: new Date(Date.now() - 10800_000).toISOString(), total_amount: 180_000, status: "cancelled" },
-    { id: 124, user: { full_name: "Hoàng Thị E",  email: "hte@gmail.com" }, route: { departure_location: "HN",  arrival_location: "Hải Phòng" }, booking_time: new Date(Date.now() - 14400_000).toISOString(), total_amount: 220_000, status: "paid" },
-    { id: 123, user: { full_name: "Vũ Quốc F",    email: "vqf@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Đà Lạt" }, booking_time: new Date(Date.now() - 18000_000).toISOString(), total_amount: 350_000, status: "pending" },
+    { id: 127, user: { full_name: "Trần Thị B", email: "ttb@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Nha Trang" }, booking_time: new Date(Date.now() - 3600_000).toISOString(), total_amount: 420_000, status: "pending" },
+    { id: 126, user: { full_name: "Lê Hoàng C", email: "lhc@gmail.com" }, route: { departure_location: "HN", arrival_location: "Đà Nẵng" }, booking_time: new Date(Date.now() - 7200_000).toISOString(), total_amount: 500_000, status: "paid" },
+    { id: 125, user: { full_name: "Phạm Minh D", email: "pmd@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Vũng Tàu" }, booking_time: new Date(Date.now() - 10800_000).toISOString(), total_amount: 180_000, status: "cancelled" },
+    { id: 124, user: { full_name: "Hoàng Thị E", email: "hte@gmail.com" }, route: { departure_location: "HN", arrival_location: "Hải Phòng" }, booking_time: new Date(Date.now() - 14400_000).toISOString(), total_amount: 220_000, status: "paid" },
+    { id: 123, user: { full_name: "Vũ Quốc F", email: "vqf@gmail.com" }, route: { departure_location: "HCM", arrival_location: "Đà Lạt" }, booking_time: new Date(Date.now() - 18000_000).toISOString(), total_amount: 350_000, status: "pending" },
   ],
   upcomingTrips: [
-    { id: 15, route: { departure_location: "HCM", arrival_location: "Đà Lạt" },    departure_time: new Date(Date.now() + 3600_000).toISOString(),  status: "departing" },
-    { id: 16, route: { departure_location: "HCM", arrival_location: "Nha Trang" }, departure_time: new Date(Date.now() + 7200_000).toISOString(),  status: "scheduled" },
-    { id: 17, route: { departure_location: "HN",  arrival_location: "Đà Nẵng" },   departure_time: new Date(Date.now() + 10800_000).toISOString(), status: "scheduled" },
-    { id: 18, route: { departure_location: "HCM", arrival_location: "Vũng Tàu" },  departure_time: new Date(Date.now() + 14400_000).toISOString(), status: "scheduled" },
+    { id: 15, route: { departure_location: "HCM", arrival_location: "Đà Lạt" }, departure_time: new Date(Date.now() + 3600_000).toISOString(), status: "departing" },
+    { id: 16, route: { departure_location: "HCM", arrival_location: "Nha Trang" }, departure_time: new Date(Date.now() + 7200_000).toISOString(), status: "scheduled" },
+    { id: 17, route: { departure_location: "HN", arrival_location: "Đà Nẵng" }, departure_time: new Date(Date.now() + 10800_000).toISOString(), status: "scheduled" },
+    { id: 18, route: { departure_location: "HCM", arrival_location: "Vũng Tàu" }, departure_time: new Date(Date.now() + 14400_000).toISOString(), status: "scheduled" },
   ],
 };
 
@@ -58,7 +58,7 @@ function fmtPrice(p) {
   if (!p && p !== 0) return "0đ";
   const n = Number(p);
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M đ";
-  if (n >= 1_000)     return (n / 1_000).toFixed(0) + "K đ";
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K đ";
   return n.toLocaleString("vi-VN") + "đ";
 }
 function fmtPriceFull(p) {
@@ -77,7 +77,7 @@ function fmtDate(dt) {
 // ─── Mini Bar Chart ───────────────────────────────────────────────────────────
 function MiniBarChart({ data, color }) {
   if (!data || data.length === 0) return null;
-  const max  = Math.max(...data.map((d) => d.value), 1);
+  const max = Math.max(...data.map((d) => d.value), 1);
   const W = 180, H = 48;
   const barW = Math.floor(W / data.length) - 2;
   return (
@@ -101,7 +101,7 @@ function StatCard({ label, value, sub, iconColor, iconBg, icon, chartData, onCli
       <div className="flex items-start justify-between">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d={icon} stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d={icon} stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         {chartData && <MiniBarChart data={chartData} color={iconColor} />}
@@ -118,18 +118,18 @@ function StatCard({ label, value, sub, iconColor, iconBg, icon, chartData, onCli
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status, type = "booking" }) {
   const BOOKING = {
-    pending:   { label: "Chờ TT",    color: "#d97706", bg: "#fffbeb" },
-    paid:      { label: "Đã TT",     color: "#059669", bg: "#f0fdf4" },
-    cancelled: { label: "Đã hủy",    color: "#dc2626", bg: "#fef2f2" },
+    pending: { label: "Chờ TT", color: "#d97706", bg: "#fffbeb" },
+    paid: { label: "Đã TT", color: "#059669", bg: "#f0fdf4" },
+    cancelled: { label: "Đã hủy", color: "#dc2626", bg: "#fef2f2" },
   };
   const TRIP = {
-    scheduled: { label: "Chờ",       color: "#2563eb", bg: "#eff6ff" },
+    scheduled: { label: "Chờ", color: "#2563eb", bg: "#eff6ff" },
     departing: { label: "Đang chạy", color: "#d97706", bg: "#fffbeb" },
-    completed: { label: "Xong",      color: "#059669", bg: "#f0fdf4" },
-    cancelled: { label: "Hủy",       color: "#dc2626", bg: "#fef2f2" },
+    completed: { label: "Xong", color: "#059669", bg: "#f0fdf4" },
+    cancelled: { label: "Hủy", color: "#dc2626", bg: "#fef2f2" },
   };
   const map = type === "trip" ? TRIP : BOOKING;
-  const m   = map[status] ?? { label: status, color: "#64748b", bg: "#f1f5f9" };
+  const m = map[status] ?? { label: status, color: "#64748b", bg: "#f1f5f9" };
   return (
     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: m.color, backgroundColor: m.bg }}>
       {m.label}
@@ -140,9 +140,9 @@ function StatusBadge({ status, type = "booking" }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [data, setData]         = useState(MOCK_DATA); // Hiển thị mock ngay
-  const [loading, setLoading]   = useState(false);
-  const [isMock, setIsMock]     = useState(true);
+  const [data, setData] = useState(MOCK_DATA); // Hiển thị mock ngay
+  const [loading, setLoading] = useState(false);
+  const [isMock, setIsMock] = useState(true);
 
   // Thử fetch BE, nếu lỗi giữ mock
   const fetchAll = useCallback(async () => {
@@ -156,55 +156,55 @@ export default function AdminDashboard() {
       ]);
 
       const bookings = Array.isArray(bRes.data) ? bRes.data : bRes.data.data ?? [];
-      const trips    = Array.isArray(tRes.data) ? tRes.data : tRes.data.data ?? [];
-      const users    = Array.isArray(uRes.data) ? uRes.data : uRes.data.data ?? [];
-      const routes   = Array.isArray(rRes.data) ? rRes.data : rRes.data.data ?? [];
+      const trips = Array.isArray(tRes.data) ? tRes.data : tRes.data.data ?? [];
+      const users = Array.isArray(uRes.data) ? uRes.data : uRes.data.data ?? [];
+      const routes = Array.isArray(rRes.data) ? rRes.data : rRes.data.data ?? [];
 
-      const paid         = bookings.filter((b) => b.status === "paid");
-      const revenue      = paid.reduce((s, b) => s + Number(b.total_amount ?? 0), 0);
+      const paid = bookings.filter((b) => b.status === "paid");
+      const revenue = paid.reduce((s, b) => s + Number(b.totalAmount ?? 0), 0);
       const pendingCount = bookings.filter((b) => b.status === "pending").length;
-      const activeTrips  = trips.filter((t) => t.status === "departing").length;
-      const customers    = users.filter((u) => u.role === "customer" || u.role === "Khách hàng").length;
+      const activeTrips = trips.filter((t) => t.status === "departing").length;
+      const customers = users.filter((u) => u.role === "customer").length;
 
       const last7 = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(); d.setDate(d.getDate() - (6 - i));
         const key = d.toISOString().slice(0, 10);
-        const days = ["CN","T2","T3","T4","T5","T6","T7"];
+        const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
         return {
           label: days[d.getDay()],
-          value: paid.filter((b) => b.booking_time?.slice(0, 10) === key)
-                     .reduce((s, b) => s + Number(b.total_amount ?? 0), 0),
+          value: paid.filter((b) => b.createdAt?.slice(0, 10) === key)
+            .reduce((s, b) => s + Number(b.totalAmount ?? 0), 0),
         };
       });
 
       const routeRevenue = {};
       paid.forEach((b) => {
-        const trip  = trips.find((t) => t.id === b.trip_id || t.id === Number(b.trip_id));
-        const route = trip ? routes.find((r) => r.id === trip.route_id || r.id === Number(trip.route_id)) : null;
+        const trip = trips.find((t) => t.id === (b.tripId || b.trip_id) || t.id === Number(b.tripId || b.trip_id));
+        const route = trip ? (trip.route || routes.find((r) => r.id === (trip.routeId || trip.route_id) || r.id === Number(trip.routeId || trip.route_id))) : null;
         if (route) {
-          const key = `${route.departure_location} → ${route.arrival_location}`;
-          routeRevenue[key] = (routeRevenue[key] ?? 0) + Number(b.total_amount ?? 0);
+          const key = `${route.departureLocation || route.departure_location} → ${route.arrivalLocation || route.arrival_location}`;
+          routeRevenue[key] = (routeRevenue[key] ?? 0) + Number(b.totalAmount || b.total_amount || 0);
         }
       });
 
-      const topRoutes = Object.entries(routeRevenue).sort(([,a],[,b])=>b-a).slice(0,5).map(([name,rev])=>({name,rev}));
+      const topRoutes = Object.entries(routeRevenue).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, rev]) => ({ name, rev }));
 
       const recentBookings = [...bookings]
-        .sort((a,b) => new Date(b.booking_time) - new Date(a.booking_time))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 6)
-        .map((b) => ({
-          ...b,
-          route: (() => {
-            const t = trips.find((t) => t.id === b.trip_id || t.id === Number(b.trip_id));
-            return t ? routes.find((r) => r.id === t.route_id || r.id === Number(t.route_id)) : null;
-          })(),
-        }));
+        .map((b) => {
+          const tripObj = trips.find((t) => t.id === (b.tripId || b.trip_id) || t.id === Number(b.tripId || b.trip_id));
+          return {
+            ...b,
+            route: tripObj ? (tripObj.route || routes.find((r) => r.id === (tripObj.routeId || tripObj.route_id) || r.id === Number(tripObj.routeId || tripObj.route_id))) : null,
+          };
+        });
 
       const upcomingTrips = trips
         .filter((t) => t.status === "scheduled" || t.status === "departing")
-        .sort((a,b) => new Date(a.departure_time) - new Date(b.departure_time))
+        .sort((a, b) => new Date(a.departureTime) - new Date(b.departureTime))
         .slice(0, 5)
-        .map((t) => ({ ...t, route: routes.find((r) => r.id === t.route_id || r.id === Number(t.route_id)) }));
+        .map((t) => ({ ...t, route: t.route || routes.find((r) => r.id === (t.routeId || t.route_id) || r.id === Number(t.routeId || t.route_id)) }));
 
       setData({ revenue, totalBookings: bookings.length, pendingCount, totalPaid: paid.length, activeTrips, totalTrips: trips.length, customers, last7, topRoutes, recentBookings, upcomingTrips });
       setIsMock(false);
@@ -247,8 +247,8 @@ export default function AdminDashboard() {
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition shadow-sm disabled:opacity-50"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={loading ? "animate-spin" : ""}>
-                <path d="M4 12a8 8 0 018-8 8 8 0 017.3 4.7M20 12a8 8 0 01-8 8 8 8 0 01-7.3-4.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M20 4v4h-4M4 20v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 12a8 8 0 018-8 8 8 0 017.3 4.7M20 12a8 8 0 01-8 8 8 8 0 01-7.3-4.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M20 4v4h-4M4 20v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {loading ? "Đang tải..." : "Làm mới"}
             </button>
@@ -322,13 +322,13 @@ export default function AdminDashboard() {
                   <div className="flex-1 min-w-0">
                     {trip.route ? (
                       <>
-                        <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{trip.route.departure_location}</p>
-                        <p className="text-[11px] text-slate-400 truncate">→ {trip.route.arrival_location}</p>
+                        <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{trip.route.departureLocation}</p>
+                        <p className="text-[11px] text-slate-400 truncate">→ {trip.route.arrivalLocation}</p>
                       </>
                     ) : <p className="text-xs text-slate-400">Trip #{trip.id}</p>}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[11px] text-slate-500">{fmtDatetime(trip.departure_time)}</p>
+                    <p className="text-[11px] text-slate-500">{fmtDatetime(trip.departureTime)}</p>
                     <StatusBadge status={trip.status} type="trip" />
                   </div>
                 </div>
@@ -359,21 +359,21 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ backgroundColor: "#f97316" }}>
-                          {(b.user?.full_name ?? "U").charAt(0)}
+                          {(b.User?.fullName ?? "U").charAt(0)}
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-slate-800 leading-tight">{b.user?.full_name ?? `User #${b.user_id}`}</p>
-                          <p className="text-[10px] text-slate-400">{b.user?.email ?? "—"}</p>
+                          <p className="text-xs font-semibold text-slate-800 leading-tight">{b.User?.fullName ?? `User #${b.userId}`}</p>
+                          <p className="text-[10px] text-slate-400">{b.User?.email ?? "—"}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
                       {b.route
-                        ? <p className="text-xs text-slate-700">{b.route.departure_location} → {b.route.arrival_location}</p>
+                        ? <p className="text-xs text-slate-700">{b.route.departureLocation} → {b.route.arrivalLocation}</p>
                         : <span className="text-xs text-slate-400">—</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-slate-500">{fmtDatetime(b.booking_time)}</td>
-                    <td className="px-4 py-3.5 text-xs font-bold" style={{ color: "#f97316" }}>{fmtPriceFull(b.total_amount)}</td>
+                    <td className="px-4 py-3.5 text-xs text-slate-500">{fmtDatetime(b.createdAt)}</td>
+                    <td className="px-4 py-3.5 text-xs font-bold" style={{ color: "#f97316" }}>{fmtPriceFull(b.totalAmount)}</td>
                     <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
                   </tr>
                 ))}
@@ -385,9 +385,9 @@ export default function AdminDashboard() {
         {/* Quick links */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Thêm chuyến xe",    to: "/admin/trips",      color: "#2563eb", bg: "#eff6ff" },
-            { label: "Quản lý tuyến",     to: "/admin/routes",     color: "#059669", bg: "#f0fdf4" },
-            { label: "Xem sơ đồ ghế",    to: "/admin/seats",      color: "#d97706", bg: "#fffbeb" },
+            { label: "Thêm chuyến xe", to: "/admin/trips", color: "#2563eb", bg: "#eff6ff" },
+            { label: "Quản lý tuyến", to: "/admin/routes", color: "#059669", bg: "#f0fdf4" },
+            { label: "Xem sơ đồ ghế", to: "/admin/seats", color: "#d97706", bg: "#fffbeb" },
             { label: "Thống kê chi tiết", to: "/admin/statistics", color: "#7c3aed", bg: "#f5f3ff" },
           ].map(({ label, to, color, bg }) => (
             <button key={to} onClick={() => navigate(to)}
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
             >
               <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               {label}

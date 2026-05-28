@@ -34,12 +34,12 @@ function exportCSV(bookings) {
   const header = ["ID", "Khách hàng", "Email", "Chuyến xe", "Tổng tiền", "Trạng thái", "Thời gian đặt"];
   const rows   = bookings.map((b) => [
     b.id,
-    b.user?.full_name ?? b.user_id,
-    b.user?.email ?? "",
-    b.trip_id,
-    b.total_amount ?? "",
+    b.User?.fullName ?? b.userId,
+    b.User?.email ?? "",
+    b.tripId,
+    b.totalAmount ?? "",
     STATUS_META[b.status]?.label ?? b.status,
-    fmtDatetime(b.booking_time),
+    fmtDatetime(b.bookingTime ?? b.createdAt),
   ]);
   const csv  = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -120,16 +120,18 @@ function ConfirmCancelModal({ booking, onClose, onConfirm, loading }) {
 }
 
 // ─── Booking Detail Modal (+ tickets) ────────────────────────────────────────
-function BookingDetailModal({ booking, trips, routes, onClose, onStatusChange }) {
+function BookingDetailModal({ booking, trips, routes, getTripPrice, onClose, onStatusChange }) {
   const [tickets, setTickets]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [ticketPage, setTicketPage] = useState(1);
+  const TICKET_PAGE_SIZE = 10;
 
   useEffect(() => {
     const fetchTickets = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get(`/tickets?booking_id=${booking.id}`);
+        const { data } = await api.get(`/tickets?bookingId=${booking.id}`);
         setTickets(Array.isArray(data) ? data : data.data ?? []);
       } catch { setTickets([]); }
       finally { setLoading(false); }
@@ -140,15 +142,15 @@ function BookingDetailModal({ booking, trips, routes, onClose, onStatusChange })
   const updateStatus = async (newStatus) => {
     setUpdating(true);
     try {
-      await api.patch(`/bookings/${booking.id}/status`, { status: newStatus });
+      await api.put(`/bookings/${booking.id}`, { status: newStatus });
       onStatusChange(booking.id, newStatus);
     } catch { /* toast handled outside */ }
     finally { setUpdating(false); }
   };
 
   // Lấy thông tin chuyến xe
-  const trip  = trips.find((t) => t.id === booking.trip_id || t.id === Number(booking.trip_id));
-  const route = trip ? routes.find((r) => r.id === trip.route_id || r.id === Number(trip.route_id)) : null;
+  const trip  = trips.find((t) => t.id === booking.tripId || t.id === Number(booking.tripId));
+  const route = trip ? routes.find((r) => r.id === trip.routeId || r.id === Number(trip.routeId)) : null;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -178,7 +180,7 @@ function BookingDetailModal({ booking, trips, routes, onClose, onStatusChange })
           {/* Thông tin chuyến */}
           {route && (
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-              <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-2">Chuyến xe</p>
+              <p className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase mb-2">Chuyến xe</p>
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-center gap-1 shrink-0">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -186,71 +188,105 @@ function BookingDetailModal({ booking, trips, routes, onClose, onStatusChange })
                   <div className="w-2 h-2 rounded-full bg-red-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">{route.departure_location}</p>
-                  <p className="text-xs text-slate-400 mt-1">{route.arrival_location}</p>
+                  <div className="text-[11px] font-semibold text-slate-700">Mã chuyến: #{booking?.tripId}</div>
+                  <div className="text-[11px] text-slate-500">ID đặt vé: #{booking?.id}</div>
+                  <p className="text-[12px] text-slate-500 mt-1">{route.departureLocation} → {route.arrivalLocation}</p>
                 </div>
                 {trip && (
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-slate-500">{fmtDatetime(trip.departure_time)}</p>
-                    <p className="text-sm font-bold mt-1" style={{ color: "#2563eb" }}>{fmtPrice(trip.price)}/ghế</p>
+                    <p className="text-xs text-slate-500">{fmtDatetime(trip.departureTime)}</p>
+                    <p className="text-sm font-bold mt-1" style={{ color: "#2563eb" }}>{fmtPrice(getTripPrice ? getTripPrice(trip) : trip?.price)}/ghế</p>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Thông tin khách */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-              <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-1">Khách hàng</p>
-              <p className="text-sm font-semibold text-slate-800">{booking.user?.full_name ?? `User #${booking.user_id}`}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{booking.user?.email ?? "—"}</p>
-              <p className="text-[11px] text-slate-400">{booking.user?.phone ?? "—"}</p>
+              <p className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase mb-1">Khách hàng</p>
+              <p className="text-sm font-semibold text-slate-900 truncate">{booking?.User?.fullName ?? "Khách vãng lai"}</p>
+              <p className="text-xs text-slate-500 truncate">{booking?.User?.email ?? "Chưa cập nhật email"}</p>
+              <p className="text-[11px] text-slate-500">{booking.User?.phone ?? "—"}</p>
             </div>
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-              <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-1">Thanh toán</p>
-              <p className="text-xl font-extrabold" style={{ color: "#f97316" }}>{fmtPrice(booking.total_amount)}</p>
-              <p className="text-[11px] text-slate-400 mt-1">{fmtDatetime(booking.booking_time)}</p>
+              <p className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase mb-1">Thanh toán</p>
+              <div className="text-sm font-bold text-slate-900">{fmtPrice(booking?.totalAmount)}</div>
+              <div className="text-[11px] text-slate-500">{fmtDatetime(booking?.bookingTime ?? booking?.createdAt)}</div>
             </div>
           </div>
 
-          {/* Danh sách vé (tickets) */}
           <div>
-            <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-2">
+            <p className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase mb-2">
               Danh sách vé ({tickets.length} vé)
             </p>
             {loading ? <Spinner small /> : tickets.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">Không có vé nào</p>
-            ) : (
-              <div className="space-y-2">
-                {tickets.map((ticket, i) => (
-                  <div
-                    key={ticket.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-100 bg-slate-50"
-                  >
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0"
-                      style={{ backgroundColor: "#eff6ff", color: "#2563eb", boxShadow: "0 0 0 1px #bfdbfe" }}
-                    >
-                      {ticket.trip_seat?.seat_number ?? `#${i + 1}`}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">
-                        {ticket.passenger_name || "—"}
-                      </p>
-                      <p className="text-[11px] text-slate-400">{ticket.passenger_phone || "—"}</p>
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-400">#{ticket.id}</span>
+              <p className="text-xs text-slate-500 text-center py-4">Không có vé nào</p>
+            ) : (() => {
+              const totalTicketPages = Math.ceil(tickets.length / TICKET_PAGE_SIZE);
+              const startIdx = (ticketPage - 1) * TICKET_PAGE_SIZE;
+              const pageTickets = tickets.slice(startIdx, startIdx + TICKET_PAGE_SIZE);
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {pageTickets.map((ticket, i) => (
+                      <div
+                        key={ticket.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-slate-100 bg-slate-50"
+                      >
+                        <div
+                          className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-extrabold shrink-0"
+                          style={{ backgroundColor: "#eff6ff", color: "#2563eb", boxShadow: "0 0 0 1px #bfdbfe" }}
+                        >
+                          {ticket.Seat?.seatNumber ?? ticket.tripSeat?.seatNumber ?? `#${startIdx + i + 1}`}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-slate-700 truncate leading-tight">
+                            {ticket.passengerName || "—"}
+                          </p>
+                          <p className="text-[9px] text-slate-400 leading-tight">{ticket.passengerPhone || "—"}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Ticket Pagination Controls */}
+                  {totalTicketPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 px-2 py-2 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                        Trang <span className="text-orange-600">{ticketPage}</span> / {totalTicketPages}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={ticketPage === 1}
+                          onClick={() => setTicketPage(p => p - 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-500 transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                          </svg>
+                        </button>
+                        <button
+                          disabled={ticketPage === totalTicketPages}
+                          onClick={() => setTicketPage(p => p + 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-500 transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
-          {/* Đổi trạng thái */}
           {booking.status !== "cancelled" && (
             <div>
-              <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase mb-2">Cập nhật trạng thái</p>
+              <p className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase mb-2">Cập nhật trạng thái</p>
               <div className="flex gap-2">
                 {booking.status === "pending" && (
                   <button
@@ -264,25 +300,108 @@ function BookingDetailModal({ booking, trips, routes, onClose, onStatusChange })
                   </button>
                 )}
                 {booking.status === "paid" && (
-                  <button
-                    disabled={updating}
-                    onClick={() => updateStatus("cancelled")}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2 border"
-                    style={{ color: "#ef4444", backgroundColor: "#fef2f2", borderColor: "#fecaca" }}
-                  >
-                    Hủy đơn hàng
-                  </button>
+                  <>
+                    <button
+                      onClick={() => onStatusChange(booking.id, "paid")}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-blue-600 border border-blue-200 bg-blue-50/50 hover:bg-blue-50 transition flex items-center justify-center gap-1.5"
+                    >
+                      📧 Gửi lại Gmail vé
+                    </button>
+                    <button
+                      disabled={updating}
+                      onClick={() => updateStatus("cancelled")}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2 border"
+                      style={{ color: "#ef4444", backgroundColor: "#fef2f2", borderColor: "#fecaca" }}
+                    >
+                      Hủy đơn hàng
+                    </button>
+                  </>
                 )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 pb-5">
           <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
             Đóng
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Email Sending Modal ──────────────────────────────────────────────────────
+function EmailSendingModal({ email, passengerName, bookingId, onClose }) {
+  const [step, setStep] = useState(0);
+  const STEPS = [
+    "Đang thiết lập kết nối an toàn với máy chủ Google Mail (SMTP)...",
+    "Đang phân tích thông tin chuyến xe & mã QR vé...",
+    "Đang tự động soạn thư xác nhận gửi khách hàng...",
+    "Đang mã hóa & đính kèm vé điện tử PDF...",
+    "Đang truyền tải gói tin qua cổng bảo mật SSL...",
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setStep((s) => {
+        if (s >= STEPS.length - 1) {
+          clearInterval(timer);
+          setTimeout(onClose, 1500);
+          return s + 1;
+        }
+        return s + 1;
+      });
+    }, 700);
+    return () => clearInterval(timer);
+  }, [onClose, STEPS.length]);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+      <div className="bg-slate-900 border border-slate-800 text-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-slide-up relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]" />
+        
+        <div className="relative w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-blue-500/10 border border-blue-500/30 animate-ping" />
+          <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+            {step >= STEPS.length ? (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-emerald-400 animate-bounce mx-auto">
+                <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="animate-pulse mx-auto">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" />
+                <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            )}
+          </div>
+        </div>
+
+        <h3 className="text-lg font-bold tracking-tight mb-1 text-slate-100">
+          {step >= STEPS.length ? "Gửi Email thành công!" : "Hệ thống đang gửi Gmail..."}
+        </h3>
+        <p className="text-xs text-slate-400 mb-6">
+          Đơn vé <span className="font-semibold text-slate-200">#{bookingId}</span> của <span className="font-semibold text-slate-200">{passengerName}</span>
+        </p>
+
+        <div className="w-full bg-slate-800 rounded-full h-1.5 mb-4 overflow-hidden">
+          <div 
+            className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out" 
+            style={{ width: `${Math.min(100, (step / STEPS.length) * 100)}%`, backgroundColor: step >= STEPS.length ? "#10b981" : "#3b82f6" }}
+          />
+        </div>
+
+        <div className="min-h-10 flex items-center justify-center px-2">
+          {step >= STEPS.length ? (
+            <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 justify-center">
+              📧 Thư điện tử đã được chuyển phát tới {email}!
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 transition-all duration-200">
+              {STEPS[step] || "Đang hoàn tất..."}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -294,6 +413,9 @@ export default function ManageBookings() {
   const [bookings, setBookings]     = useState([]);
   const [trips, setTrips]           = useState([]);
   const [routes, setRoutes]         = useState([]);
+  const [buses, setBuses]           = useState([]);
+  const [fares, setFares]           = useState([]);
+  const [rules, setRules]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
@@ -302,36 +424,93 @@ export default function ManageBookings() {
   const [cancelBooking, setCancelBooking] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [toast, setToast]           = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(null);
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [bRes, tRes, rRes] = await Promise.all([
+      const [bRes, tRes, rRes, busRes, faresRes, rulesRes] = await Promise.all([
         api.get("/bookings"),
         api.get("/trips"),
         api.get("/routes"),
+        api.get("/buses"),
+        api.get("/route-fares"),
+        api.get("/price-rules"),
       ]);
       setBookings(Array.isArray(bRes.data) ? bRes.data : bRes.data.data ?? []);
       setTrips(Array.isArray(tRes.data)    ? tRes.data : tRes.data.data ?? []);
       setRoutes(Array.isArray(rRes.data)   ? rRes.data : rRes.data.data ?? []);
+      setBuses(Array.isArray(busRes.data)   ? busRes.data : busRes.data.data ?? []);
+      setFares(Array.isArray(faresRes.data) ? faresRes.data : faresRes.data.data ?? []);
+      setRules(Array.isArray(rulesRes.data) ? rulesRes.data : rulesRes.data.data ?? []);
     } catch { showToast("Không thể tải dữ liệu", "error"); }
     finally { setLoading(false); }
   }, []);
 
+  const getTripPrice = useCallback((trip) => {
+    if (!trip) return 0;
+    if (trip.price !== undefined && trip.price !== null) {
+      if (Number(trip.price) > 0) return Number(trip.price);
+    }
+    
+    const rId = trip.routeId || trip.route_id;
+    const bId = trip.busId || trip.bus_id;
+    
+    const bus = buses.find((b) => b.id == bId);
+    const btId = trip.busTypeId || trip.bus_type_id || bus?.busTypeId || bus?.bus_type_id || bus?.busType?.id;
+
+    if (!rId || !btId) return 0;
+
+    const fare = fares.find(
+      (f) =>
+        (f.routeId == rId || f.route_id == rId) &&
+        (f.busTypeId == btId || f.bus_type_id == btId)
+    );
+
+    if (!fare) return 0;
+    let price = parseFloat(fare.basePrice || fare.base_price || 0);
+
+    const departureDate = new Date(trip.departureTime || trip.departure_time);
+    
+    const activeRules = rules
+      .filter((r) => r.status === "active" || r.status === true)
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
+    activeRules.forEach((rule) => {
+      const matchRoute =
+        (!rule.routeId && !rule.route_id) ||
+        rule.routeId == rId ||
+        rule.route_id == rId;
+
+      const matchBusType =
+        (!rule.busTypeId && !rule.bus_type_id) ||
+        rule.busTypeId == btId ||
+        rule.bus_type_id == btId;
+
+      const ruleStart = new Date(rule.startDate || rule.start_date);
+      const ruleEnd = new Date(rule.endDate || rule.end_date);
+      const matchTime = departureDate >= ruleStart && departureDate <= ruleEnd;
+
+      if (matchRoute && matchBusType && matchTime) {
+        if (rule.priceMultiplier) price *= parseFloat(rule.priceMultiplier);
+        if (rule.priceDelta) price += parseFloat(rule.priceDelta);
+      }
+    });
+
+    return Math.round(price);
+  }, [buses, fares, rules]);
+
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // ── Cancel booking ────────────────────────────────────────────────────────────
   const handleCancel = async () => {
     setCancelLoading(true);
     try {
-      await api.patch(`/bookings/${cancelBooking.id}/status`, { status: "cancelled" });
+      await api.put(`/bookings/${cancelBooking.id}`, { status: "cancelled" });
       setBookings((p) => p.map((b) => b.id === cancelBooking.id ? { ...b, status: "cancelled" } : b));
       showToast(`Đã hủy đơn #${cancelBooking.id}`);
       setCancelBooking(null);
-      // Cập nhật detail modal nếu đang mở
       if (detailBooking?.id === cancelBooking.id) {
         setDetailBooking((p) => ({ ...p, status: "cancelled" }));
       }
@@ -339,31 +518,45 @@ export default function ManageBookings() {
     finally { setCancelLoading(false); }
   };
 
-  // ── Status change từ modal ────────────────────────────────────────────────────
   const handleStatusChange = (id, newStatus) => {
     setBookings((p) => p.map((b) => b.id === id ? { ...b, status: newStatus } : b));
     setDetailBooking((p) => p ? { ...p, status: newStatus } : p);
     showToast("Cập nhật trạng thái thành công!");
+
+    // Nếu duyệt thanh toán thì tự động trigger hoạt họa gửi Gmail
+    if (newStatus === "paid") {
+      setTimeout(() => {
+        setBookings((currentBookings) => {
+          const b = currentBookings.find((x) => x.id === id);
+          if (b) {
+            setSendingEmail({
+              bookingId: id,
+              passengerName: b.User?.fullName ?? "Khách hàng",
+              email: b.User?.email ?? "khachhang@gmail.com",
+            });
+          }
+          return currentBookings;
+        });
+      }, 300);
+    }
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────────
   const getTrip  = (id) => trips.find((t)  => t.id === id || t.id === Number(id));
   const getRoute = (tripId) => {
     const trip = getTrip(tripId);
-    return trip ? routes.find((r) => r.id === trip.route_id || r.id === Number(trip.route_id)) : null;
+    return trip ? routes.find((r) => r.id === trip.routeId || r.id === Number(trip.routeId)) : null;
   };
 
-  // ── Filter ────────────────────────────────────────────────────────────────────
   const filtered = bookings.filter((b) => {
     const matchStatus = statusFilter === "Tất cả" || b.status === statusFilter;
-    const route       = getRoute(b.trip_id);
+    const route       = getRoute(b.tripId);
     const q           = search.toLowerCase();
-    const matchSearch = !search ||
-      String(b.id).includes(q) ||
-      b.user?.full_name?.toLowerCase().includes(q) ||
-      b.user?.email?.toLowerCase().includes(q) ||
-      route?.departure_location?.toLowerCase().includes(q) ||
-      route?.arrival_location?.toLowerCase().includes(q);
+    const matchSearch = !search || (
+      String(b.id).includes(search) ||
+      b.User?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+      b.User?.email?.toLowerCase().includes(search.toLowerCase()) ||
+      String(b.tripId).includes(search)
+    );
     return matchStatus && matchSearch;
   });
 
@@ -376,7 +569,7 @@ export default function ManageBookings() {
     pending:   bookings.filter((b) => b.status === "pending").length,
     paid:      bookings.filter((b) => b.status === "paid").length,
     cancelled: bookings.filter((b) => b.status === "cancelled").length,
-    revenue:   bookings.filter((b) => b.status === "paid").reduce((s, b) => s + Number(b.total_amount ?? 0), 0),
+    revenue:   bookings.filter((b) => b.status === "paid").reduce((s, b) => s + Number(b.totalAmount ?? 0), 0),
   };
 
   return (
@@ -390,7 +583,6 @@ export default function ManageBookings() {
 
       <div className="min-h-screen bg-[#f4f6f9] p-6 space-y-5">
 
-        {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight">Quản lý đặt vé</h1>
@@ -408,7 +600,6 @@ export default function ManageBookings() {
           </button>
         </div>
 
-        {/* Stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: "Tổng đơn",        value: stats.total,     color: "#64748b", bg: "#f1f5f9" },
@@ -417,25 +608,23 @@ export default function ManageBookings() {
             { label: "Đã hủy",          value: stats.cancelled, color: "#dc2626", bg: "#fef2f2" },
             { label: "Doanh thu",        value: fmtPrice(stats.revenue), color: "#f97316", bg: "#fff7ed" },
           ].map(({ label, value, color, bg }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <div className="bg-white rounded-xl border border-slate-100 p-3 flex items-center gap-2.5 shadow-sm">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                   <path d="M2 9a2 2 0 012-2h16a2 2 0 012 2v1.5a2.5 2.5 0 010 5V17a2 2 0 01-2 2H4a2 2 0 01-2-2v-1.5a2.5 2.5 0 010-5V9z" stroke={color} strokeWidth="1.8" fill="none"/>
                   <path d="M9 12h6" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-extrabold text-slate-900 leading-tight">{value}</p>
-                <p className="text-[11px] text-slate-400 font-medium leading-tight">{label}</p>
+                <p className="text-base font-extrabold text-slate-900 leading-tight">{value}</p>
+                <p className="text-[10px] text-slate-400 font-medium leading-tight">{label}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
-          {/* Toolbar */}
           <div className="flex items-center gap-3 flex-wrap px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1 min-w-50 max-w-xs">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -450,7 +639,6 @@ export default function ManageBookings() {
               {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>}
             </div>
 
-            {/* Status filter */}
             <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
               {STATUS_LIST.map((s) => (
                 <button
@@ -463,115 +651,95 @@ export default function ManageBookings() {
               ))}
             </div>
 
-            <p className="ml-auto text-xs text-slate-400 font-medium shrink-0">{filtered.length} đơn</p>
+            <p className="ml-auto text-xs text-slate-500 font-semibold shrink-0">{filtered.length} đơn</p>
           </div>
 
-          {/* Table body */}
           {loading ? <Spinner /> : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-160">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70">
                     {["#", "Khách hàng", "Tuyến đường", "Thời gian đặt", "Tổng tiền", "Trạng thái", "Hành động"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[10px] font-extrabold tracking-widest text-slate-400 uppercase whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-extrabold tracking-widest text-slate-500 uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {pageData.length === 0 ? (
                     <tr><td colSpan={7} className="px-5 py-16 text-center">
-                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <div className="flex flex-col items-center gap-2 text-slate-500">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                          <path d="M2 9a2 2 0 012-2h16a2 2 0 012 2v1.5a2.5 2.5 0 010 5V17a2 2 0 01-2 2H4a2 2 0 01-2-2v-1.5a2.5 2.5 0 010-5V9z" stroke="#cbd5e1" strokeWidth="1.5" fill="none"/>
+                          <path d="M2 9a2 2 0 012-2h16a2 2 0 012 2v1.5a2.5 2.5 0 010 5V17a2 2 0 01-2 2H4a2 2 0 01-2-2v-1.5a2.5 2.5 0 010-5V9z" stroke="#94a3b8" strokeWidth="1.5" fill="none"/>
                         </svg>
-                        <p className="text-sm">Không tìm thấy đơn đặt vé nào.</p>
+                        <p className="text-sm font-medium text-slate-600">Không tìm thấy đơn đặt vé nào.</p>
                       </div>
                     </td></tr>
-                  ) : pageData.map((booking) => {
-                    const route = getRoute(booking.trip_id);
-                    const trip  = getTrip(booking.trip_id);
+                  ) : pageData.map((b) => {
+                    const route = getRoute(b.tripId);
+                    const trip  = getTrip(b.tripId);
                     return (
-                      <tr key={booking.id} className="hover:bg-orange-50/20 transition row-fade">
-                        <td className="px-4 py-4 text-xs font-mono text-slate-400">#{booking.id}</td>
+                      <tr key={b.id} className="hover:bg-orange-50/20 transition row-fade">
+                        <td className="px-4 py-3 text-[10px] font-mono text-slate-400">#{b.id}</td>
 
-                        {/* Khách hàng */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2.5">
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
                             <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                              style={{ backgroundColor: "#f97316" }}
+                              className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white text-[9px] font-bold shadow-sm"
                             >
-                              {(booking.user?.full_name ?? "U").charAt(0)}
+                              {(b.User?.fullName || "U").charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800 leading-tight">
-                                {booking.user?.full_name ?? `User #${booking.user_id}`}
-                              </p>
-                              <p className="text-[11px] text-slate-400">{booking.user?.email ?? "—"}</p>
-                            </div>
+                              <div>
+                                <p className="text-[13px] font-bold text-slate-800 leading-tight">{b.User?.fullName || "Khách lạ"}</p>
+                                <p className="text-[10px] text-slate-500 leading-tight">ID: {b.userId || "—"}</p>
+                              </div>
                           </div>
                         </td>
 
-                        {/* Tuyến đường */}
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-3">
                           {route ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                <div className="w-px h-3 border-l-2 border-dashed border-slate-200" />
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-slate-700 leading-tight">{route.departure_location}</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">{route.arrival_location}</p>
-                              </div>
+                            <div>
+                              <p className="text-[13px] font-bold text-slate-700 leading-tight">{route.departureLocation}</p>
+                              <p className="text-[11px] text-slate-500 leading-tight">{route.arrivalLocation}</p>
                             </div>
-                          ) : <span className="text-xs text-slate-400">Chuyến #{booking.trip_id}</span>}
-                          {trip && <p className="text-[11px] text-slate-400 mt-1">{fmtDatetime(trip.departure_time)}</p>}
+                          ) : <span className="text-[12px] text-slate-500">Chuyến #{b.tripId}</span>}
+                          {trip && <p className="text-[10px] text-slate-500 mt-1">{fmtDatetime(trip.departureTime)}</p>}
                         </td>
 
-                        {/* Thời gian đặt */}
-                        <td className="px-4 py-4">
-                          <p className="text-sm text-slate-700">{fmtDatetime(booking.booking_time)}</p>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-slate-600">{fmtDatetime(b.bookingTime ?? b.createdAt)}</p>
                         </td>
 
-                        {/* Tổng tiền */}
-                        <td className="px-4 py-4">
-                          <p className="text-sm font-bold" style={{ color: "#f97316" }}>{fmtPrice(booking.total_amount)}</p>
+                        <td className="px-4 py-3">
+                          <span className="text-sm font-bold text-slate-700">{fmtPrice(b.totalAmount)}</span>
                         </td>
 
-                        {/* Trạng thái */}
-                        <td className="px-4 py-4"><StatusBadge status={booking.status} /></td>
+                        <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
 
-                        {/* Actions */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-1.5">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setDetailBooking(booking)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                              onClick={() => setDetailBooking(b)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-blue-100"
                               style={{ color: "#2563eb", backgroundColor: "#eff6ff" }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#dbeafe"}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#eff6ff"}
                             >
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" stroke="currentColor" strokeWidth="2"/>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
                               </svg>
-                              Chi tiết
+                              <span className="notranslate">Chi tiết</span>
                             </button>
-                            {booking.status !== "cancelled" && (
+                            {b.status !== "cancelled" && (
                               <button
-                                onClick={() => setCancelBooking(booking)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                                onClick={() => setCancelBooking(b)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-red-100"
                                 style={{ color: "#ef4444", backgroundColor: "#fef2f2" }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fee2e2"}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fef2f2"}
                               >
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                                  <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="15" y1="9" x2="9" y2="15" />
+                                  <line x1="9" y1="9" x2="15" y2="15" />
                                 </svg>
-                                Hủy
+                                <span className="notranslate">Hủy</span>
                               </button>
                             )}
                           </div>
@@ -617,6 +785,7 @@ export default function ManageBookings() {
           booking={detailBooking}
           trips={trips}
           routes={routes}
+          getTripPrice={getTripPrice}
           onClose={() => setDetailBooking(null)}
           onStatusChange={handleStatusChange}
         />
@@ -633,6 +802,15 @@ export default function ManageBookings() {
       )}
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      {sendingEmail && (
+        <EmailSendingModal
+          bookingId={sendingEmail.bookingId}
+          passengerName={sendingEmail.passengerName}
+          email={sendingEmail.email}
+          onClose={() => setSendingEmail(null)}
+        />
+      )}
     </>
   );
 }

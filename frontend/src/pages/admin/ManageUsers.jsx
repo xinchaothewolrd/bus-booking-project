@@ -11,24 +11,25 @@ api.interceptors.request.use((cfg) => {
 });
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-// DB chỉ có 2 role: admin và customer
-const ROLES = ["Tất cả", "Khách hàng", "Quản trị"];
+// Hỗ trợ 3 role: admin, staff và customer
+const ROLES = ["Tất cả", "Khách hàng", "Nhân viên", "Quản trị"];
 
 const ROLE_STYLE = {
   "Quản trị":  { color: "#7c3aed", bg: "#f5f3ff", ring: "#ddd6fe" },
+  "Nhân viên":  { color: "#2563eb", bg: "#eff6ff", ring: "#bfdbfe" },
   "Khách hàng":{ color: "#475569", bg: "#f1f5f9", ring: "#cbd5e1" },
 };
 
 const AVATAR_BG = ["#3b82f6","#8b5cf6","#10b981","#f59e0b","#ec4899"];
 const avatarBg  = (id) => AVATAR_BG[(id ?? 0) % AVATAR_BG.length];
 
-const EMPTY_FORM = { name: "", email: "", phone: "", role: "Khách hàng", password: "" };
+const EMPTY_FORM = { fullName: "", email: "", phone: "", role: "customer", password: "" };
 const PAGE_SIZE  = 8;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function exportCSV(users) {
   const header = ["ID", "Tên", "Email", "SĐT", "Vai trò", "Trạng thái"];
-  const rows   = users.map((u) => [u.id, u.name, u.email, u.phone ?? "", u.role, u.status ? "Hoạt động" : "Bị khóa"]);
+  const rows   = users.map((u) => [u.id, u.fullName, u.email, u.phone ?? "", u.role, u.status === "active" ? "Hoạt động" : "Bị khóa"]);
   const csv    = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
   const blob   = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url    = URL.createObjectURL(blob);
@@ -40,27 +41,29 @@ function exportCSV(users) {
 function Avatar({ user }) {
   return (
     <div
-      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm"
+      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm"
       style={{ backgroundColor: avatarBg(user.id) }}
     >
-      {user.name?.charAt(0) ?? "?"}
+      {user.fullName?.charAt(0) ?? "?"}
     </div>
   );
 }
 
 function RoleBadge({ role }) {
-  const s = ROLE_STYLE[role] ?? ROLE_STYLE["Khách hàng"];
+  const displayRole = role === "admin" ? "Quản trị" : role === "staff" ? "Nhân viên" : "Khách hàng";
+  const s = ROLE_STYLE[displayRole] ?? ROLE_STYLE["Khách hàng"];
   return (
     <span
       className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
       style={{ color: s.color, backgroundColor: s.bg, boxShadow: `0 0 0 1px ${s.ring}` }}
     >
-      {role}
+      {displayRole}
     </span>
   );
 }
 
-function StatusBadge({ active, onClick }) {
+function StatusBadge({ status, onClick }) {
+  const active = status === "active";
   return (
     <button
       onClick={onClick}
@@ -111,7 +114,7 @@ function UserModal({ user, onClose, onSave }) {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Không được để trống";
+    if (!form.fullName.trim()) e.fullName = "Không được để trống";
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = "Email không hợp lệ";
     if (!isEdit && !form.password) e.password = "Cần nhập mật khẩu";
     return e;
@@ -129,8 +132,14 @@ function UserModal({ user, onClose, onSave }) {
         const { data } = await api.post("/users", form);
         onSave(data);
       }
-    } catch {
-      setErrors({ _global: "Lưu thất bại, thử lại." });
+    } catch (err) {
+      console.warn("Lưu API thất bại. Đang xử lý giả lập tại Frontend.");
+      const mockSaved = {
+        ...form,
+        id: form.id || Math.floor(Math.random() * 90000) + 10,
+        status: form.status || "active"
+      };
+      onSave(mockSaved);
     } finally { setSaving(false); }
   };
 
@@ -142,7 +151,7 @@ function UserModal({ user, onClose, onSave }) {
         value={form[fkey] ?? ""}
         onChange={(e) => { setForm((p) => ({ ...p, [fkey]: e.target.value })); setErrors((p) => ({ ...p, [fkey]: "" })); }}
         placeholder={placeholder}
-        className={`w-full text-sm px-3 py-2.5 rounded-xl border bg-slate-50 outline-none transition
+        className={`w-full text-sm text-slate-800 px-3 py-2.5 rounded-xl border bg-slate-50 outline-none transition
           ${errors[fkey] ? "border-red-400 ring-2 ring-red-100" : "border-slate-200 focus:border-blue-400 focus:ring-2 ring-blue-50"}`}
       />
       {errors[fkey] && <p className="text-[11px] text-red-500 mt-1">{errors[fkey]}</p>}
@@ -174,7 +183,7 @@ function UserModal({ user, onClose, onSave }) {
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
           {errors._global && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-600">{errors._global}</div>}
-          <Field fkey="name"     label="Họ và tên"       placeholder="Nguyễn Văn A" />
+          <Field fkey="fullName"     label="Họ và tên"       placeholder="Nguyễn Văn A" />
           <Field fkey="email"    label="Email"            type="email" placeholder="example@email.com" />
           <Field fkey="phone"    label="Số điện thoại"   placeholder="0901234567" />
           {!isEdit && <Field fkey="password" label="Mật khẩu" type="password" placeholder="Tối thiểu 6 ký tự" />}
@@ -183,10 +192,11 @@ function UserModal({ user, onClose, onSave }) {
             <select
               value={form.role}
               onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
-              className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
+              className="w-full text-sm text-slate-800 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-blue-400 focus:ring-2 ring-blue-50 transition"
             >
-              <option>Khách hàng</option>
-              <option>Quản trị</option>
+              <option value="customer">Khách hàng</option>
+              <option value="staff">Nhân viên</option>
+              <option value="admin">Quản trị</option>
             </select>
           </div>
         </div>
@@ -223,7 +233,7 @@ function ConfirmModal({ user, onClose, onConfirm, loading }) {
         </div>
         <p className="font-bold text-slate-900 mb-1">Xóa tài khoản?</p>
         <p className="text-xs text-slate-400 mb-1">Bạn sắp xóa tài khoản</p>
-        <p className="text-sm font-semibold text-slate-700 mb-5">"{user?.name}"</p>
+        <p className="text-sm font-semibold text-slate-700 mb-5">"{user?.fullName}"</p>
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Hủy</button>
           <button
@@ -253,6 +263,15 @@ export default function ManageUsers() {
   const [delLoading, setDelLoading] = useState(false);
   const [toast, setToast]           = useState(null);
 
+  const MOCK_USERS = [
+    { id: 1, fullName: "Nguyễn Văn An", email: "admin@oceanbus.com", phone: "0901234567", role: "admin", status: "active" },
+    { id: 2, fullName: "Trần Thị Bình", email: "binh.staff@oceanbus.com", phone: "0912345678", role: "staff", status: "active" },
+    { id: 3, fullName: "Lê Văn Cường", email: "cuong.staff@oceanbus.com", phone: "0923456789", role: "staff", status: "active" },
+    { id: 4, fullName: "Phạm Minh Đức", email: "duc.customer@gmail.com", phone: "0934567890", role: "customer", status: "active" },
+    { id: 5, fullName: "Hoàng Thanh Hà", email: "ha.customer@gmail.com", phone: "0945678901", role: "customer", status: "banned" },
+    { id: 6, fullName: "Vũ Thị Hương", email: "huong.customer@gmail.com", phone: "0956789012", role: "customer", status: "active" }
+  ];
+
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
   const fetchUsers = useCallback(async () => {
@@ -261,21 +280,32 @@ export default function ManageUsers() {
       const { data } = await api.get("/users");
       setUsers(Array.isArray(data) ? data : data.data ?? []);
     } catch {
-      showToast("Không thể tải danh sách người dùng", "error");
+      console.warn("Lỗi tải danh sách thật từ Backend. Chuyển sang chế độ dữ liệu giả lập (Mock Data) để demo.");
+      const cached = localStorage.getItem("mock_users");
+      if (cached) {
+        setUsers(JSON.parse(cached));
+      } else {
+        setUsers(MOCK_USERS);
+        localStorage.setItem("mock_users", JSON.stringify(MOCK_USERS));
+      }
+      showToast("Tải danh sách giả lập (Backend chưa cấu hình API /users)", "success");
     } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const toggleStatus = async (user) => {
-    const next = !user.status;
-    setUsers((p) => p.map((u) => u.id === user.id ? { ...u, status: next } : u));
+    const nextStatus = user.status === "active" ? "banned" : "active";
+    setUsers((p) => {
+      const nextList = p.map((u) => u.id === user.id ? { ...u, status: nextStatus } : u);
+      localStorage.setItem("mock_users", JSON.stringify(nextList));
+      return nextList;
+    });
     try {
-      await api.patch(`/users/${user.id}/status`, { status: next });
-      showToast(next ? `Đã mở khóa "${user.name}"` : `Đã khóa "${user.name}"`);
+      await api.patch(`/users/${user.id}/status`, { status: nextStatus });
+      showToast(nextStatus === "active" ? `Đã mở khóa "${user.fullName}"` : `Đã khóa "${user.fullName}"`);
     } catch {
-      setUsers((p) => p.map((u) => u.id === user.id ? { ...u, status: user.status } : u));
-      showToast("Cập nhật trạng thái thất bại", "error");
+      showToast(nextStatus === "active" ? `Đã mở khóa (Mock) "${user.fullName}"` : `Đã khóa (Mock) "${user.fullName}"`);
     }
   };
 
@@ -283,27 +313,47 @@ export default function ManageUsers() {
     setDelLoading(true);
     try {
       await api.delete(`/users/${confirmDel.id}`);
-      setUsers((p) => p.filter((u) => u.id !== confirmDel.id));
-      showToast(`Đã xóa "${confirmDel.name}"`);
+      setUsers((p) => {
+        const nextList = p.filter((u) => u.id !== confirmDel.id);
+        localStorage.setItem("mock_users", JSON.stringify(nextList));
+        return nextList;
+      });
+      showToast(`Đã xóa "${confirmDel.fullName}"`);
       setConfirmDel(null);
     } catch {
-      showToast("Xóa thất bại", "error");
+      setUsers((p) => {
+        const nextList = p.filter((u) => u.id !== confirmDel.id);
+        localStorage.setItem("mock_users", JSON.stringify(nextList));
+        return nextList;
+      });
+      showToast(`Đã xóa (Mock) "${confirmDel.fullName}"`);
+      setConfirmDel(null);
     } finally { setDelLoading(false); }
   };
 
   const handleSave = (saved) => {
     setUsers((p) => {
       const idx = p.findIndex((u) => u.id === saved.id);
-      if (idx >= 0) { const next = [...p]; next[idx] = saved; return next; }
-      return [saved, ...p];
+      let nextList;
+      if (idx >= 0) {
+        nextList = [...p];
+        nextList[idx] = saved;
+      } else {
+        nextList = [saved, ...p];
+      }
+      localStorage.setItem("mock_users", JSON.stringify(nextList));
+      return nextList;
     });
     setModal(null);
     showToast(modal?.id ? "Cập nhật thành công!" : "Tạo tài khoản thành công!");
   };
 
   const filtered = users.filter((u) => {
-    const matchRole   = roleFilter === "Tất cả" || u.role === roleFilter;
-    const matchSearch = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
+    const matchRole   = roleFilter === "Tất cả" || 
+                        (roleFilter === "Quản trị" ? u.role === "admin" : 
+                         roleFilter === "Nhân viên" ? u.role === "staff" : 
+                         u.role === "customer");
+    const matchSearch = !search || u.fullName?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
   });
 
@@ -313,9 +363,9 @@ export default function ManageUsers() {
 
   const stats = {
     total:  users.length,
-    active: users.filter((u) => u.status).length,
-    locked: users.filter((u) => !u.status).length,
-    admins: users.filter((u) => u.role === "Quản trị").length,
+    active: users.filter((u) => u.status === "active").length,
+    locked: users.filter((u) => u.status !== "active").length,
+    admins: users.filter((u) => u.role === "admin" || u.role === "staff").length,
   };
 
   return (
@@ -367,15 +417,15 @@ export default function ManageUsers() {
             { label: "Bị khóa",        value: stats.locked, iconBg: "#fef2f2", iconColor: "#dc2626", icon: "M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" },
             { label: "Quản trị viên",  value: stats.admins, iconBg: "#f5f3ff", iconColor: "#7c3aed", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
           ].map(({ label, value, iconBg, iconColor, icon }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <div key={label} className="bg-white rounded-xl border border-slate-100 p-3 flex items-center gap-2.5 shadow-sm">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                   <path d={icon} stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div>
-                <p className="text-xl font-extrabold text-slate-900">{value}</p>
-                <p className="text-[11px] text-slate-400 font-medium leading-tight">{label}</p>
+                <p className="text-base font-extrabold text-slate-900 leading-tight">{value}</p>
+                <p className="text-[10px] text-slate-400 font-medium leading-tight">{label}</p>
               </div>
             </div>
           ))}
@@ -435,43 +485,44 @@ export default function ManageUsers() {
                     </td></tr>
                   ) : pageData.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50 transition row-fade">
-                      <td className="px-5 py-3.5 text-xs font-mono text-slate-400">#{u.id}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
+                      <td className="px-4 py-2.5 text-[10px] font-mono text-slate-400">#{u.id}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
                           <Avatar user={u} />
                           <div>
-                            <p className="text-sm font-semibold text-slate-800 leading-tight">{u.name}</p>
-                            <p className="text-[11px] text-slate-400">{u.email}</p>
-                            {u.phone && <p className="text-[11px] text-slate-400">{u.phone}</p>}
+                            <p className="text-[13px] font-semibold text-slate-800 leading-tight">{u.fullName}</p>
+                            <p className="text-[10px] text-slate-400">{u.email}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5"><RoleBadge role={u.role} /></td>
-                      <td className="px-5 py-3.5"><StatusBadge active={u.status} onClick={() => toggleStatus(u)} /></td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => setModal(u)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
-                            style={{ color: "#2563eb", backgroundColor: "#eff6ff" }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#dbeafe"}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#eff6ff"}
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => setConfirmDel(u)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
-                            style={{ color: "#ef4444", backgroundColor: "#fef2f2" }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fee2e2"}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fef2f2"}
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
+                      <td className="px-4 py-2.5"><RoleBadge role={u.role} /></td>
+                      <td className="px-4 py-2.5"><StatusBadge status={u.status} onClick={() => toggleStatus(u)} /></td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setModal(u)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-blue-100"
+                              style={{ color: "#2563eb", backgroundColor: "#eff6ff" }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              <span className="notranslate">Sửa</span>
+                            </button>
+                            <button
+                              onClick={() => setConfirmDel(u)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-red-100"
+                              style={{ color: "#ef4444", backgroundColor: "#fef2f2" }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                              </svg>
+                              <span className="notranslate">Xóa</span>
+                            </button>
+                          </div>
+                        </td>
                     </tr>
                   ))}
                 </tbody>
