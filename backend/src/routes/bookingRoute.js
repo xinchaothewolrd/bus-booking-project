@@ -11,12 +11,12 @@ import {
   getBookingsByUser,
   cancelBooking,
 } from "../controllers/bookingController.js";
-import { protectedRoute, requireAdmin } from "../middlewares/authMiddleware.js";
+import { protectedRoute, requireAdmin, requireStaff } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// GET /api/bookings — Lấy tất cả bookings (Admin only)
-router.get("/", protectedRoute, requireAdmin, getAllBookings);
+// GET /api/bookings — Lấy tất cả bookings (Admin và Staff)
+router.get("/", protectedRoute, requireStaff, getAllBookings);
 
 // POST /api/bookings — Tạo booking mới (Customer đã đăng nhập)
 router.post("/", protectedRoute, createBooking);
