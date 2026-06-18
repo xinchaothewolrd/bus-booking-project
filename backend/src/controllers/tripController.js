@@ -299,6 +299,7 @@ export const searchTrips = async (req, res) => {
 
       return {
         trip_id: t.id,
+        route_id: t.routeId,
         departure_location: from,
         arrival_location: to,
         departure_time: t.departureTime,

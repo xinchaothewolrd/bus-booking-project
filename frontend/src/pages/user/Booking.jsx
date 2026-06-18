@@ -27,23 +27,81 @@ export default function BookingPage() {
   const [paymentMethod, setPaymentMethod] = useState('momo');
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const { tripId } = useParams();
-  const [trip, setTrip] = useState();
-  const [loading, setLoading] = useState(false);
-  const { isLoading: authLoading } = useAuthStore();
-  const user = useAuthStore((s) => s.user);
-  const [seatsFromApi, setSeatsFromApi] = useState([]);
-  const [seatPrice, setSeatPrice] = useState();
-  const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPickup, setSelectedPickup] = useState(null);
-  const [selectedDropoff, setSelectedDropoff] = useState(null);
-  const [locations, setLocations] = useState({ pickup: [], dropoff: [] });
-
   const storageKey = `booking_trip_${tripId}`;
   const [selectedSeats, setSelectedSeats] = useState(() => {
     const saved = localStorage.getItem(storageKey);
     return saved ? JSON.parse(saved) : [];
   });
+  const [trip, setTrip] = useState();
+  const [loading, setLoading] = useState(false);
+  const authLoading = useAuthStore((s) => s.isLoading);
+  const isLogin = useAuthStore((s) => s.isLogin);
+  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !isLogin) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [isLogin, authLoading, navigate]);
+
+  const [seatsFromApi, setSeatsFromApi] = useState([]);
+  const [seatPrice, setSeatPrice] = useState();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+
+  useEffect(() => {
+    if (selectedSeats.length > 0) {
+      if (!isTimerActive) {
+        setTimeLeft(300);
+        setIsTimerActive(true);
+      }
+    } else {
+      setIsTimerActive(false);
+      setTimeLeft(300);
+    }
+  }, [selectedSeats.length, isTimerActive]);
+
+  useEffect(() => {
+    let interval = null;
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isTimerActive) {
+      const expireHold = async () => {
+        try {
+          if (selectedSeats.length > 0) {
+            for (const seatId of selectedSeats) {
+              socket.emit('RELEASE_SEAT', { tripId: parseInt(tripId), seatNumber: seatId });
+            }
+            await releaseSeat({ tripId, seatNumbers: selectedSeats });
+          }
+        } catch (error) {
+          console.error("Lỗi khi tự động giải phóng ghế:", error);
+        } finally {
+          setSelectedSeats([]);
+          localStorage.removeItem(storageKey);
+          setIsTimerActive(false);
+          setTimeLeft(300);
+          alert("Hết thời gian 5 phút giữ ghế! Ghế của bạn đã được giải phóng.");
+          fetchSeats();
+        }
+      };
+      expireHold();
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, timeLeft, selectedSeats, tripId, storageKey]);
+
+  const formatCountdownTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  const [selectedPickup, setSelectedPickup] = useState(null);
+  const [selectedDropoff, setSelectedDropoff] = useState(null);
+  const [locations, setLocations] = useState({ pickup: [], dropoff: [] });
 
   const layout = trip?.bus?.busType?.seatLayout;
 
@@ -285,6 +343,27 @@ export default function BookingPage() {
           </div>
 
           <aside className="lg:col-span-5 space-y-6">
+            {isTimerActive && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass-elevated border-l-4 border-red-500 rounded-xl p-4 flex items-center justify-between shadow-md bg-red-500/5 backdrop-blur-md"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-3 w-3 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-on-surface">Thời gian giữ ghế của bạn</h4>
+                    <p className="text-xs text-on-surface-variant">Vui lòng hoàn tất đặt vé trước khi hết giờ</p>
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-red-500 font-mono tracking-wider bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
+                  {formatCountdownTime(timeLeft)}
+                </div>
+              </motion.div>
+            )}
             <LocationPicker 
               locations={locations} 
               selectedPickup={selectedPickup}

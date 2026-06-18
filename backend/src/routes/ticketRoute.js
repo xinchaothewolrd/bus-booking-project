@@ -13,7 +13,11 @@ import {
   getTicketByQrCode,
   checkInTicket,
 } from "../controllers/ticketController.js";
-import { protectedRoute, requireAdmin, requireStaff } from "../middlewares/authMiddleware.js";
+import {
+  protectedRoute,
+  requireAdmin,
+  requireStaff,
+} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 

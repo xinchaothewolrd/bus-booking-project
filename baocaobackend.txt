@@ -1,0 +1,399 @@
+================================================================================
+                    BÁO CÁO CHI TIẾT HỆ THỐNG BACKEND (OCEANBUS)
+================================================================================
+
+1. TỔNG QUAN TECH STACK
+--------------------------------------------------------------------------------
+- Framework chính: Node.js kết hợp Express.
+- Cơ sở dữ liệu: Relational Database (MySQL/PostgreSQL) được quản lý qua Sequelize ORM.
+- Realtime: Tích hợp Socket.io để xử lý giữ ghế, nhả ghế và đồng bộ hóa trạng thái ghế tức thời giữa các client.
+- Lập lịch ngầm: node-cron được sử dụng để tự động dọn dẹp các session hết hạn và nhả các ghế bị giữ quá thời gian thanh toán.
+- Gửi Email: Nodemailer cấu hình qua Gmail SMTP để tự động gửi thư xác nhận đặt vé (kèm mã QR) hoặc thông báo hủy vé và hoàn tiền.
+
+2. CẤU TRÚC THƯ MỤC BACKEND
+--------------------------------------------------------------------------------
+backend/
+├── src/
+│   ├── controllers/      # Chứa các file điều hướng và xử lý logic nghiệp vụ cho từng API
+│   ├── jobs/             # Chứa các tác vụ chạy nền (releaseExpiredSeats.js)
+│   ├── libs/             # Chứa kết nối CSDL và thiết lập quan hệ (db.js, setupAssociations.js)
+│   ├── middlewares/      # Middleware kiểm tra đăng nhập và phân quyền (authMiddleware.js)
+│   ├── models/           # Định nghĩa cấu trúc các bảng dữ liệu bằng Sequelize (13 models)
+│   ├── routes/           # Định nghĩa các routes / endpoints (13 routes)
+│   ├── services/         # Chứa dịch vụ bổ trợ như gửi email (emailService.js)
+│   └── server.js         # Điểm khởi chạy của ứng dụng, thiết lập Socket.io và Cron Jobs
+├── .env                  # Lưu trữ biến môi trường (PORT, DB credentials, JWT secrets, Email configs...)
+├── resetSeats.js         # Script phụ trợ để đặt lại trạng thái ghế
+├── package.json          # Quản lý thư viện phụ thuộc và các câu lệnh chạy dự án
+└── test.http             # File dùng để test nhanh API (REST Client)
+
+3. CHI TIẾT CÁC MODEL (13 MODELS)
+--------------------------------------------------------------------------------
+
+3.1. User (users)
+- Quản lý thông tin tài khoản người dùng trong hệ thống (Khách hàng, Nhân viên, Quản trị viên).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + hashedPassword (cột DB: password): STRING (Mật khẩu đã mã hóa, không null)
+  + email: STRING (Email duy nhất, không null, tự động chuyển về chữ thường và cắt khoảng trắng)
+  + fullName (cột DB: full_name): STRING (Tên đầy đủ, không null)
+  + phone: STRING (Số điện thoại duy nhất, có thể null)
+  + role: STRING(20) (Vai trò: "customer" | "staff" | "admin", mặc định là "customer")
+  + status: STRING(20) (Trạng thái: "active" | "banned", mặc định là "active")
+  + createdAt, updatedAt: DATE (Thời gian tạo/cập nhật)
+
+3.2. Session (sessions)
+- Quản lý refresh token phục vụ cơ chế duy trì đăng nhập (Refresh Token rotation).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + userId (cột DB: user_id): INTEGER (Khóa ngoại tham chiếu bảng users)
+  + refreshToken (cột DB: refresh_token): STRING (Chuỗi token duy nhất, không null)
+  + expiresAt (cột DB: expires_at): DATE (Thời gian hết hạn của token)
+  + createdAt, updatedAt: DATE (Thời gian tạo/cập nhật)
+
+3.3. Booking (bookings)
+- Quản lý các giao dịch đặt chỗ của hành khách.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + userId (cột DB: user_id): INTEGER (Khóa ngoại tham chiếu bảng users)
+  + tripId (cột DB: trip_id): INTEGER (Khóa ngoại tham chiếu bảng trips)
+  + totalAmount (cột DB: total_amount): DECIMAL(10, 2) (Tổng tiền thanh toán)
+  + status: ENUM("pending", "paid", "cancelled") (Trạng thái đơn: mặc định "pending")
+  + bookingTime (cột DB: booking_time): DATE (Thời gian thực hiện đặt vé, mặc định là hiện tại)
+  + createdAt, updatedAt: DATE (Thời gian tạo/cập nhật)
+
+3.4. Ticket (tickets)
+- Lưu thông tin chi tiết từng vé đã đặt (Một Booking có thể có nhiều Ticket, mỗi Ticket tương ứng với một ghế).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + bookingId (cột DB: booking_id): INTEGER (Khóa ngoại tham chiếu bảng bookings)
+  + tripSeatId (cột DB: trip_seat_id): INTEGER (Khóa ngoại tham chiếu bảng trip_seats)
+  + passengerName (cột DB: passenger_name): STRING(100) (Tên hành khách trên vé)
+  + passengerPhone (cột DB: passenger_phone): STRING(20) (Số điện thoại hành khách)
+  + pickupStopId (cột DB: pickup_stop_id): INTEGER (Khóa ngoại tham chiếu bảng route_stops làm điểm đón)
+  + dropoffStopId (cột DB: dropoff_stop_id): INTEGER (Khóa ngoại tham chiếu bảng route_stops làm điểm trả)
+  + qrCode (cột DB: qr_code): STRING(255) (Mã QR code định danh duy nhất của vé)
+  + status: ENUM("unused", "used", "cancelled") (Trạng thái vé: mặc định "unused")
+  + createdAt, updatedAt: DATE (Thời gian tạo/cập nhật)
+
+3.5. Payment (payments)
+- Lưu trữ thông tin giao dịch thanh toán cho mỗi đơn đặt vé (Quan hệ 1-1 với Booking).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + bookingId (cột DB: booking_id): INTEGER (Khóa ngoại tham chiếu bảng bookings, duy nhất)
+  + paymentMethod (cột DB: payment_method): ENUM("momo", "zalo_pay", "bank_transfer", "cash", "card") (Phương thức thanh toán)
+  + amount: DECIMAL(10, 2) (Số tiền thanh toán)
+  + status: ENUM("pending", "success", "failed", "refunded") (Trạng thái thanh toán: mặc định "pending")
+  + transactionTime (cột DB: transaction_time): DATE (Thời gian giao dịch thành công)
+  + createdAt, updatedAt: DATE (Thời gian tạo/cập nhật)
+
+3.6. BusType (bus_types)
+- Định nghĩa thông tin danh mục loại xe khách (ví dụ: Xe Limousine 9 chỗ, Xe giường nằm 40 chỗ).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + typeName (cột DB: type_name): STRING(50) (Tên loại xe)
+  + totalSeats (cột DB: total_seats): INTEGER (Tổng số ghế của xe)
+  + seatLayout (cột DB: seat_layout): JSON (Bản đồ sơ đồ bố trí ghế trong xe)
+- Timestamps: Không sử dụng.
+
+3.7. Bus (buses)
+- Quản lý các xe khách cụ thể thuộc đội xe.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + licensePlate (cột DB: license_plate): STRING(20) (Biển số xe duy nhất, không null)
+  + busTypeId (cột DB: bus_type_id): INTEGER (Khóa ngoại tham chiếu bảng bus_types)
+  + driverName (cột DB: driver_name): STRING(100) (Tên tài xế phụ trách mặc định)
+  + status: ENUM("active", "maintenance") (Trạng thái hoạt động hoặc bảo trì, mặc định "active")
+  + maintenanceNote (cột DB: maintenance_note): STRING(255) (Ghi chú bảo trì nếu có)
+- Timestamps: Không sử dụng.
+
+3.8. Route (routes)
+- Định nghĩa các tuyến đường vận chuyển của nhà xe.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + departureLocation (cột DB: departure_location): STRING(100) (Điểm xuất phát/tỉnh đi)
+  + arrivalLocation (cột DB: arrival_location): STRING(100) (Điểm đến/tỉnh đến)
+  + distanceKm (cột DB: distance_km): INTEGER (Khoảng cách tuyến đường tính theo km)
+  + durationEst (cột DB: duration_est): TIME (Thời gian di chuyển ước tính)
+- Timestamps: Không sử dụng.
+
+3.9. RouteStop (route_stops)
+- Lưu thông tin các trạm dừng đón hoặc trả khách dọc theo một tuyến đường nhất định.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + routeId (cột DB: route_id): INTEGER (Khóa ngoại tham chiếu bảng routes)
+  + stopName (cột DB: stop_name): STRING(255) (Tên trạm dừng)
+  + address: STRING(255) (Địa chỉ chi tiết của trạm dừng)
+  + stopType (cột DB: stop_type): ENUM("pickup", "dropoff", "both") (Loại trạm: chỉ đón, chỉ trả hoặc cả hai)
+  + stopOrder (cột DB: stop_order): INTEGER (Thứ tự trạm dừng trên hành trình)
+  + arriveOffsetMinutes (cột DB: arrive_offset_minutes): INTEGER (Thời gian ước tính từ lúc xuất phát đến trạm dừng, tính bằng phút)
+- Timestamps: Không sử dụng.
+
+3.10. RouteFare (route_fares)
+- Quản lý bảng giá cơ sở cho từng sự kết hợp giữa Tuyến đường và Loại xe (Ví dụ: Tuyến Hà Nội -> Hải Phòng đi xe Limousine có giá gốc là 250,000 VNĐ).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + routeId (cột DB: route_id): INTEGER (Khóa ngoại tham chiếu bảng routes)
+  + busTypeId (cột DB: bus_type_id): INTEGER (Khóa ngoại tham chiếu bảng bus_types)
+  + basePrice (cột DB: base_price): DECIMAL(12, 2) (Giá vé gốc)
+- Ràng buộc: Cặp (route_id, bus_type_id) là duy nhất.
+- Timestamps: Không sử dụng.
+
+3.11. PriceRule (price_rules)
+- Quản lý các quy tắc điều chỉnh giá vé linh hoạt (tăng giá dịp Lễ Tết hoặc giảm giá đợt khuyến mãi).
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + ruleName (cột DB: rule_name): STRING(100) (Tên quy tắc giá)
+  + routeId (cột DB: route_id): INTEGER (Khóa ngoại tham chiếu routes, để trống = áp dụng cho mọi tuyến)
+  + busTypeId (cột DB: bus_type_id): INTEGER (Khóa ngoại tham chiếu bus_types, để trống = áp dụng mọi loại xe)
+  + priceMultiplier (cột DB: price_multiplier): DECIMAL(5, 2) (Hệ số nhân giá vé, ví dụ: 1.2 là tăng 20%)
+  + priceDelta (cột DB: price_delta): DECIMAL(12, 2) (Mức tăng/giảm tiền mặt trực tiếp, ví dụ: +50,000 VNĐ)
+  + startDate (cột DB: start_date): DATE (Ngày bắt đầu áp dụng)
+  + endDate (cột DB: end_date): DATE (Ngày kết thúc áp dụng)
+  + priority: INTEGER (Độ ưu tiên áp dụng, số càng lớn ưu tiên càng cao)
+  + status: STRING(20) (Trạng thái: "active" | "inactive")
+- Timestamps: Không sử dụng.
+
+3.12. Trip (trips)
+- Quản lý lịch trình hoạt động cụ thể của từng chuyến đi vào một thời điểm cụ thể.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + routeId (cột DB: route_id): INTEGER (Khóa ngoại tham chiếu bảng routes)
+  + busId (cột DB: bus_id): INTEGER (Khóa ngoại tham chiếu bảng buses - xe và tài xế chạy chuyến)
+  + departureTime (cột DB: departure_time): DATE (Thời gian xuất phát thực tế)
+  + arrivalTimeExpected (cột DB: arrival_time_expected): DATE (Thời gian dự kiến đến nơi)
+  + status: ENUM("scheduled", "departing", "completed", "cancelled") (Trạng thái chuyến)
+  + cancelPolicy (cột DB: cancel_policy): TEXT (Chính sách hủy chuyến cho hành khách)
+- Timestamps: Không sử dụng.
+
+3.13. TripSeat (trip_seats)
+- Quản lý trạng thái và thông tin của từng ghế ngồi cụ thể thuộc về một chuyến đi (Trip). Ghế sẽ được tạo tự động tương ứng với Layout của loại xe khi Trip được xếp lịch.
+- Các thuộc tính:
+  + id: INTEGER (Khóa chính, tự tăng)
+  + tripId (cột DB: trip_id): INTEGER (Khóa ngoại tham chiếu bảng trips)
+  + seatNumber (cột DB: seat_number): STRING(10) (Số/Mã ghế, ví dụ: "A05")
+  + status: ENUM("available", "pending", "booked") (Trạng thái ghế: "available" - trống, "pending" - đang giữ tạm thời, "booked" - đã thanh toán thành công)
+  + pendingUntil (cột DB: pending_until): DATE (Thời hạn tối đa giữ ghế tạm thời, quá hạn sẽ tự động giải phóng)
+- Timestamps: Không sử dụng.
+
+4. CHI TIẾT CÁC API ENDPOINTS
+--------------------------------------------------------------------------------
+
+Ký hiệu phân quyền:
+- [Public]: Không yêu cầu đăng nhập.
+- [Protected]: Yêu cầu đăng nhập (có Access Token hợp lệ trong Header Authorization: `Bearer <token>`).
+- [Staff]: Yêu cầu tài khoản có quyền Nhân viên (staff) hoặc Admin (admin).
+- [Admin]: Yêu cầu tài khoản có quyền Admin (admin).
+
+4.1. Module Xác thực & Tài khoản (Auth API) - Base Path: `/api/auth`
+- POST `/api/auth/signup` [Public]
+  + Chức năng: Đăng ký tài khoản khách hàng mới.
+- POST `/api/auth/signin` [Public]
+  + Chức năng: Đăng nhập hệ thống. Trả về Access Token và lưu Refresh Token vào HTTP-Only Cookie.
+- POST `/api/auth/signout` [Public]
+  + Chức năng: Đăng xuất, hủy session lưu trữ trên cơ sở dữ liệu và xóa cookie.
+- POST `/api/auth/refresh` [Public]
+  + Chức năng: Sử dụng Refresh Token từ cookie để cấp phát Access Token mới cho client.
+
+4.2. Module Quản lý User (User API) - Base Path: `/api/users`
+- GET `/api/users/me` [Protected]
+  + Chức năng: Lấy thông tin tài khoản của user đang đăng nhập hiện tại.
+- GET `/api/users` [Admin]
+  + Chức năng: Lấy danh sách toàn bộ người dùng trong hệ thống.
+- POST `/api/users` [Admin]
+  + Chức năng: Admin tạo mới một tài khoản (ví dụ tạo tài khoản nhân viên - staff).
+- PUT `/api/users/:id` [Admin]
+  + Chức năng: Admin cập nhật thông tin cá nhân của một người dùng.
+- DELETE `/api/users/:id` [Admin]
+  + Chức năng: Admin xóa tài khoản người dùng khỏi hệ thống.
+- PATCH `/api/users/:id/status` [Admin]
+  + Chức năng: Admin khóa (banned) hoặc mở khóa (active) tài khoản người dùng.
+
+4.3. Module Đặt vé (Booking API) - Base Path: `/api/bookings`
+- GET `/api/bookings` [Admin]
+  + Chức năng: Lấy danh sách toàn bộ các đơn đặt vé.
+- POST `/api/bookings` [Protected]
+  + Chức năng: Tạo mới đơn đặt chỗ và giữ ghế tạm thời (pending). Thực hiện tính toán tổng tiền dựa trên giá gốc + PriceRule.
+- GET `/api/bookings/user/:userId` [Protected]
+  + Chức năng: Xem danh sách đơn đặt vé của một user cụ thể (chính chủ hoặc admin mới được truy cập).
+- GET `/api/bookings/:id` [Protected]
+  + Chức năng: Xem thông tin chi tiết một đơn đặt vé cụ thể.
+- PUT `/api/bookings/:id` [Admin]
+  + Chức năng: Admin cập nhật thông tin đơn đặt vé.
+- DELETE `/api/bookings/:id` [Admin]
+  + Chức năng: Admin xóa vĩnh viễn đơn đặt vé.
+- POST `/api/bookings/:bookingId/cancel` [Protected]
+  + Chức năng: Khách hàng hủy đơn đặt vé đang trong trạng thái chờ hoặc đã thanh toán (áp dụng tính toán hoàn tiền theo chính sách).
+
+4.4. Module Vé điện tử (Ticket API) - Base Path: `/api/tickets`
+- GET `/api/tickets` [Admin]
+  + Chức năng: Xem danh sách toàn bộ vé điện tử.
+- POST `/api/tickets` [Admin]
+  + Chức năng: Tạo vé thủ công.
+- GET `/api/tickets/booking/:bookingId` [Protected]
+  + Chức năng: Lấy toàn bộ danh sách vé điện tử (kèm mã QR Code) của một đơn đặt vé cụ thể.
+- GET `/api/tickets/user/:userId` [Protected]
+  + Chức năng: Xem toàn bộ danh sách vé của một người dùng.
+- GET `/api/tickets/check/:qrCode` [Staff]
+  + Chức năng: Dành cho nhân viên soát vé quét/tra cứu thông tin vé thông qua mã QR Code.
+- PATCH `/api/tickets/:id/checkin` [Staff]
+  + Chức năng: Cập nhật trạng thái vé thành "used" khi khách lên xe (check-in).
+- GET `/api/tickets/:id` [Admin]
+  + Chức năng: Chi tiết 1 vé.
+- PUT `/api/tickets/:id` [Admin]
+  + Chức năng: Cập nhật thông tin vé.
+- DELETE `/api/tickets/:id` [Admin]
+  + Chức năng: Xóa vé.
+
+4.5. Module Thanh toán (Payment API) - Base Path: `/api/payments`
+- GET `/api/payments` [Admin]
+  + Chức năng: Lấy danh sách toàn bộ các lịch sử thanh toán.
+- GET `/api/payments/vnpay-return` [Public]
+  + Chức năng: Nhận phản hồi kết quả giao dịch tự động từ VNPay, xử lý cập nhật trạng thái đơn vé và gửi mail xác nhận.
+- POST `/api/payments` [Admin]
+  + Chức năng: Tạo thông tin thanh toán thủ công.
+- POST `/api/payments/create_url` [Protected]
+  + Chức năng: Tạo và trả về liên kết thanh toán VNPay Gateway cho đơn đặt vé.
+- GET `/api/payments/booking/:bookingId` [Protected]
+  + Chức năng: Lấy thông tin thanh toán gắn liền với Booking ID.
+- GET `/api/payments/:id` [Admin]
+  + Chức năng: Xem chi tiết thông tin thanh toán.
+- PUT `/api/payments/:id` [Admin]
+  + Chức năng: Cập nhật thông tin thanh toán.
+- POST `/api/payments/:id/approve` [Admin]
+  + Chức năng: Duyệt giao dịch thanh toán thủ công (đánh dấu thành công).
+- POST `/api/payments/:id/reject` [Admin]
+  + Chức năng: Từ chối giao dịch thanh toán thủ công.
+- POST `/api/payments/:id/refund` [Admin]
+  + Chức năng: Thực hiện hoàn tiền cho khách khi hủy đơn.
+- POST `/api/payments/:id/pay` [Protected]
+  + Chức năng: Giả lập (Mock) thanh toán trực tiếp để test luồng không qua cổng ngân hàng.
+
+4.6. Module Loại xe (Bus Type API) - Base Path: `/api/bus-types`
+- GET `/api/bus-types` [Protected]
+  + Chức năng: Xem danh sách các loại xe khách hiện có.
+- POST `/api/bus-types` [Protected]
+  + Chức năng: Tạo mới một loại xe khách.
+- GET `/api/bus-types/:id` [Protected]
+  + Chức năng: Chi tiết một loại xe khách.
+- PUT `/api/bus-types/:id` [Protected]
+  + Chức năng: Cập nhật thông tin loại xe khách.
+- DELETE `/api/bus-types/:id` [Protected]
+  + Chức năng: Xóa loại xe khách.
+
+4.7. Module Xe khách (Bus API) - Base Path: `/api/buses`
+- GET `/api/buses` [Protected]
+  + Chức năng: Xem danh sách tất cả các xe khách.
+- POST `/api/buses` [Protected]
+  + Chức năng: Thêm mới xe khách vào danh mục quản lý.
+- GET `/api/buses/:id` [Protected]
+  + Chức năng: Chi tiết một xe khách.
+- PUT `/api/buses/:id` [Protected]
+  + Chức năng: Cập nhật thông tin xe khách (ví dụ chuyển trạng thái sang maintenance).
+- DELETE `/api/buses/:id` [Protected]
+  + Chức năng: Xóa xe khách.
+
+4.8. Module Tuyến đường (Route API) - Base Path: `/api/routes`
+- GET `/api/routes` [Protected]
+  + Chức năng: Lấy danh sách các tuyến đường.
+- POST `/api/routes` [Protected]
+  + Chức năng: Thêm mới một tuyến đường vận chuyển.
+- GET `/api/routes/:id` [Protected]
+  + Chức năng: Chi tiết thông tin tuyến đường.
+- PUT `/api/routes/:id` [Protected]
+  + Chức năng: Cập nhật tuyến đường.
+- DELETE `/api/routes/:id` [Protected]
+  + Chức năng: Xóa tuyến đường.
+
+4.9. Module Điểm dừng (Route Stop API) - Base Path: `/api/route-stops`
+- GET `/api/route-stops` [Protected]
+  + Chức năng: Lấy danh sách toàn bộ các điểm dừng chân (có hỗ trợ lọc theo query `?routeId=`).
+- GET `/api/route-stops/routes/:routeId` [Protected]
+  + Chức năng: Lấy tất cả các điểm dừng đón/trả thuộc về một tuyến đường cụ thể, sắp xếp theo thứ tự lộ trình.
+- GET `/api/route-stops/:id` [Protected]
+  + Chức năng: Chi tiết thông tin điểm dừng.
+- POST `/api/route-stops` [Protected]
+  + Chức năng: Tạo mới một điểm dừng đón/trả khách.
+- PUT `/api/route-stops/:id` [Protected]
+  + Chức năng: Cập nhật thông tin điểm dừng.
+- DELETE `/api/route-stops/:id` [Protected]
+  + Chức năng: Xóa điểm dừng.
+
+4.10. Bảng giá gốc (Route Fare API) - Base Path: `/api/route-fares`
+- GET `/api/route-fares` [Protected]
+  + Chức năng: Lấy toàn bộ bảng giá vé gốc.
+- GET `/api/route-fares/:id` [Protected]
+  + Chức năng: Xem chi tiết mức giá.
+- POST `/api/route-fares` [Protected]
+  + Chức năng: Thiết lập mức giá gốc mới cho một Tuyến đường + Loại xe cụ thể.
+- PUT `/api/route-fares/:id` [Protected]
+  + Chức năng: Cập nhật mức giá gốc.
+- DELETE `/api/route-fares/:id` [Protected]
+  + Chức năng: Xóa mức giá gốc.
+
+4.11. Luật giá linh động (Price Rule API) - Base Path: `/api/price-rules`
+- GET `/api/price-rules` [Protected]
+  + Chức năng: Xem danh sách toàn bộ luật giá.
+- GET `/api/price-rules/active` [Protected]
+  + Chức năng: Lấy danh sách luật giá đang có hiệu lực tại thời điểm hiện tại (phục vụ frontend tính giá tức thì).
+- GET `/api/price-rules/:id` [Protected]
+  + Chức năng: Xem chi tiết luật giá.
+- POST `/api/price-rules` [Protected]
+  + Chức năng: Thêm mới một quy tắc giá linh động.
+- PUT `/api/price-rules/:id` [Protected]
+  + Chức năng: Cập nhật quy tắc giá.
+- DELETE `/api/price-rules/:id` [Protected]
+  + Chức năng: Xóa bỏ quy tắc giá.
+
+4.12. Lịch trình chuyến đi (Trip API) - Base Path: `/api/trips`
+- GET `/api/trips` [Protected]
+  + Chức năng: Lấy danh sách các chuyến đi.
+- GET `/api/trips/search` [Protected]
+  + Chức năng: Tìm kiếm chuyến xe. API cực kỳ quan trọng cho người dùng tra cứu chuyến đi dựa trên điểm xuất phát, điểm đến và ngày khởi hành mong muốn.
+- GET `/api/trips/:id` [Protected]
+  + Chức năng: Chi tiết chuyến đi.
+- POST `/api/trips` [Protected]
+  + Chức năng: Tạo mới một chuyến đi và tự động khởi tạo danh sách ghế trống cho chuyến đó dựa trên sơ đồ ghế của loại xe.
+- PUT `/api/trips/:id` [Protected]
+  + Chức năng: Cập nhật thông tin chuyến xe.
+- DELETE `/api/trips/:id` [Protected]
+  + Chức năng: Hủy/Xóa chuyến xe.
+
+4.13. Quản lý trạng thái ghế (Trip Seat API) - Base Path: `/api/trip-seats`
+- GET `/api/trip-seats` [Protected]
+  + Chức năng: Lấy danh sách trạng thái ghế.
+- GET `/api/trip-seats/trip/:tripId` [Protected]
+  + Chức năng: Trả về trạng thái ghế thực tế của một chuyến đi cụ thể (phục vụ vẽ sơ đồ ghế cho khách chọn trên frontend).
+- POST `/api/trip-seats/hold` [Protected]
+  + Chức năng: Đăng ký giữ chỗ tạm thời (chuyển sang pending và thiết lập thời hạn pending_until).
+- POST `/api/trip-seats/release` [Protected]
+  + Chức năng: Giải phóng ghế đang được giữ tạm thời.
+- GET `/api/trip-seats/:id` [Protected]
+  + Chức năng: Chi tiết ghế ngồi.
+- POST `/api/trip-seats` [Protected]
+  + Chức năng: Tạo ghế thủ công.
+- PUT `/api/trip-seats/:id` [Protected]
+  + Chức năng: Cập nhật thông tin ghế.
+- DELETE `/api/trip-seats/:id` [Protected]
+  + Chức năng: Xóa ghế.
+
+5. REALTIME VỚI SOCKET.IO
+--------------------------------------------------------------------------------
+Hệ thống sử dụng cơ chế truyền thông hai chiều thời gian thực (Realtime) để đảm bảo trải nghiệm người dùng tối ưu khi chọn ghế, tránh việc nhiều người đặt trùng 1 ghế cùng thời điểm.
+- Luồng sự kiện lắng nghe và phát sóng:
+  + HOLD_SEAT: Khi một client chọn giữ ghế, server ghi nhận socket.id đang giữ ghế đó và broadcast sự kiện `SEAT_UPDATED` (với status = "pending") tới toàn bộ các client khác đang xem cùng chuyến xe để cập nhật giao diện (đổi sang màu xám/vàng).
+  + RELEASE_SEAT: Khi khách bỏ chọn ghế hoặc không đặt nữa, server xóa ghi nhận và broadcast sự kiện `SEAT_UPDATED` (với status = "available") để giải phóng ghế trở lại màu xanh.
+  + disconnect: Trong trường hợp người dùng đột ngột mất mạng, tắt trình duyệt hoặc tải lại trang khi đang giữ ghế, server sẽ tự động nhả ghế tương ứng và phát tín hiệu cho các client khác để tránh việc ghế bị "khóa chết" vô lý.
+
+6. CÁC TÁC VỤ CHẠY NỀN TỰ ĐỘNG (CRON JOBS)
+--------------------------------------------------------------------------------
+Các tác vụ tự động thực thi định kỳ không cần sự can thiệp của người dùng:
+- Dọn dẹp Session hết hạn (Hằng ngày vào 00:00):
+  + Tự động xóa các bản ghi Refresh Token đã hết hạn trong bảng `sessions` để tối ưu dung lượng DB.
+- Giải phóng ghế hết hạn thanh toán (Chạy mỗi phút một lần):
+  + Quét bảng `trip_seats` tìm các ghế có `status` = "pending" và thời gian giữ chỗ `pendingUntil` nhỏ hơn thời điểm hiện tại.
+  + Đối với mỗi ghế quá hạn, hệ thống tự động:
+    * Đưa trạng thái ghế về lại "available" và xóa `pending_until`.
+    * Chuyển trạng thái đơn hàng (`Booking`) liên quan từ "pending" thành "cancelled".
+    * Chuyển trạng thái vé (`Ticket`) tương ứng từ "unused" thành "cancelled".
+================================================================================

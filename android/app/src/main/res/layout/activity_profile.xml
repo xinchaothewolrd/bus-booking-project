@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#f8f9fa"
+    android:padding="20dp">
+
+    <!-- Header: Avatar & Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="32dp">
+
+        <TextView
+            android:id="@+id/tvAvatarInitials"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_circle_green_avatar"
+            android:text="N"
+            android:textColor="#016E21"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <TextView
+                android:id="@+id/tvUserName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nguyen Van A"
+                android:textColor="#191c1d"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tvUserEmail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="nguyenvana@gmail.com"
+                android:textColor="#3f493d"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvUserPhone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0901234567"
+                android:textColor="#3f493d"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEditProfile"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Chỉnh sửa hồ sơ"
+        android:textColor="#016E21"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="32dp"
+        app:backgroundTint="@android:color/transparent"
+        app:strokeColor="#016E21"
+        app:strokeWidth="1dp"
+        app:cornerRadius="8dp" />
+
+    <!-- Menu List -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_card_white"
+        android:padding="16dp">
+
+        <!-- Personal Info -->
+        <LinearLayout
+            android:id="@+id/menuPersonalInfo"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_person_green" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Thông tin cá nhân"
+                android:textColor="#191c1d"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="#5d6466"/>
+        </LinearLayout>
+        
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+
+        <!-- Booking History -->
+        <LinearLayout
+            android:id="@+id/menuBookingHistory"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_history_green" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Lịch sử đặt vé"
+                android:textColor="#191c1d"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="#5d6466"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+
+        <!-- Support -->
+        <LinearLayout
+            android:id="@+id/menuSupport"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_support_green" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hỗ trợ / Khiếu nại"
+                android:textColor="#191c1d"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="#5d6466"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+
+        <!-- Logout -->
+        <LinearLayout
+            android:id="@+id/menuLogout"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_logout_green"
+                app:tint="#ba1a1a"/>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Đăng xuất"
+                android:textColor="#ba1a1a"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

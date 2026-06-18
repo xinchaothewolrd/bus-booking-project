@@ -70,7 +70,7 @@ const io = new Server(server, {
 const holdSeatsTracker = new Map();
 
 io.on("connection", (socket) => {
-  console.log(`🔌 Giang hồ kết nối Socket: ${socket.id}`);
+  console.log(`🔌 kết nối Socket: ${socket.id}`);
 
   socket.on("HOLD_SEAT", (data) => {
     const { tripId, seatNumber } = data;
@@ -96,7 +96,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log(`❌ Giang hồ đã out: ${socket.id}`);
+    console.log(`❌  đã out: ${socket.id}`);
 
     const holdData = holdSeatsTracker.get(socket.id);
     if (holdData) {

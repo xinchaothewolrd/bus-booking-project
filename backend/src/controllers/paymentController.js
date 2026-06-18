@@ -23,19 +23,28 @@ const vnpay = new VNPay({
 
 export const createPaymentUrl = (req, res) => {
     try {
-        const { bookingId, amount, bankCode } = req.body;
+        const { bookingId, amount, bankCode, isMobile } = req.body;
         
         // Lấy IP của khách (VNPay bắt buộc)
         const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || '127.0.0.1';
+
+        const orderInfo = isMobile ? `APP_Thanh toan ve xe don hang ${bookingId}` : `Thanh toan ve xe don hang ${bookingId}`;
+
+        // Cấu hình URL trả về khác nhau giữa Mobile và Web
+        let returnUrl = process.env.vnp_ReturnUrl; // Mặc định cho Web (http://localhost:5173...)
+        if (isMobile) {
+            // Dành cho Android Emulator kết nối vào Host PC
+            returnUrl = 'http://10.0.2.2:3000/api/payments/vnpay-return'; 
+        }
 
         // Gọi hàm build link của thư viện
         const urlString = vnpay.buildPaymentUrl({
             vnp_Amount: amount, // 
             vnp_IpAddr: ipAddr,
             vnp_TxnRef: bookingId.toString(), //
-            vnp_OrderInfo: `Thanh toan ve xe don hang ${bookingId}`,
+            vnp_OrderInfo: orderInfo,
             vnp_OrderType: 'other',
-            vnp_ReturnUrl: process.env.vnp_ReturnUrl, 
+            vnp_ReturnUrl: returnUrl, 
             vnp_Locale: 'vn', // Tiếng Việt
             ...(bankCode && { vnp_BankCode: bankCode })
         });
@@ -84,6 +93,8 @@ export const vnpayReturn = async (req, res) => {
             });
         }
 
+        const isMobile = vnp_Params['vnp_OrderInfo'] && vnp_Params['vnp_OrderInfo'].startsWith('APP_');
+
         // 🔥 NẾU KHÁCH THANH TOÁN THÀNH CÔNG ('00')
         if (responseCode === '00') {
             // Tránh trường hợp React reload 2 lần gọi hàm lại làm gửi mail 2 lần
@@ -115,6 +126,10 @@ export const vnpayReturn = async (req, res) => {
                 }
             }
 
+            if (isMobile) {
+                return res.redirect(`greenbus://payment-result?success=true&bookingId=${bookingId}`);
+            }
+
             // 👉 TRẢ VỀ JSON CHO REACT XỬ LÝ GIAO DIỆN
             return res.status(200).json({ 
                 success: true, 
@@ -144,6 +159,10 @@ export const vnpayReturn = async (req, res) => {
                         })
                     );
                 }
+            }
+
+            if (isMobile) {
+                return res.redirect(`greenbus://payment-result?success=false&bookingId=${bookingId}`);
             }
 
             // 👉 TRẢ VỀ JSON BÁO XỊT CHO REACT

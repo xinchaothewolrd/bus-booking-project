@@ -41,7 +41,12 @@ export default function LoginForm() {
     toast.success("Đăng nhập thành công");
     console.log(user)
 
-    if (user?.role === "admin") {
+    const queryParams = new URLSearchParams(window.location.search);
+    const redirectUrl = queryParams.get("redirect");
+
+    if (redirectUrl) {
+      navigate(redirectUrl);
+    } else if (user?.role === "admin") {
       navigate("/admin");
     } else if (user?.role === "staff") {
       navigate("/admin/bookings");
