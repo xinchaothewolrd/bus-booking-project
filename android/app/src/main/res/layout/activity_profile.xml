@@ -21,7 +21,7 @@
             android:layout_height="64dp"
             android:background="@drawable/bg_circle_green_avatar"
             android:text="N"
-            android:textColor="#016E21"
+            android:textColor="?attr/colorPrimary"
             android:textSize="28sp"
             android:textStyle="bold"
             android:gravity="center" />
@@ -61,18 +61,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnEditProfile"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="Chỉnh sửa hồ sơ"
-        android:textColor="#016E21"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="32dp"
-        app:backgroundTint="@android:color/transparent"
-        app:strokeColor="#016E21"
-        app:strokeWidth="1dp"
-        app:cornerRadius="8dp" />
+
 
     <!-- Menu List -->
     <LinearLayout
@@ -107,7 +96,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="#3f493d"/>
         </LinearLayout>
         
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
@@ -137,7 +126,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="#3f493d"/>
         </LinearLayout>
 
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
@@ -167,7 +156,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="#3f493d"/>
         </LinearLayout>
 
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
@@ -185,15 +174,43 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_logout_green"
-                app:tint="#ba1a1a"/>
+                app:tint="?attr/colorError"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Đăng xuất"
-                android:textColor="#ba1a1a"
+                android:textColor="?attr/colorError"
                 android:textSize="16sp"
                 android:layout_marginStart="16dp"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+
+        <!-- Back to Home -->
+        <LinearLayout
+            android:id="@+id/menuBackToHome"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_chevron_right"
+                android:rotation="180"
+                app:tint="?attr/colorPrimary"/>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Quay lại trang chủ"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"
+                android:textStyle="bold"/>
         </LinearLayout>
 
     </LinearLayout>

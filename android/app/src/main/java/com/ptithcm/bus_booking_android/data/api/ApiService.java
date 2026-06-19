@@ -15,6 +15,7 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import com.ptithcm.bus_booking_android.data.model.RouteStopResponse;
 
@@ -44,6 +45,9 @@ public interface ApiService {
 
     @GET("users/me")
     Call<com.ptithcm.bus_booking_android.data.model.UserResponse> getProfile();
+
+    @PUT("users/me")
+    Call<com.ptithcm.bus_booking_android.data.model.UserResponse> updateMyProfile(@Body com.ptithcm.bus_booking_android.data.model.UserUpdateRequest request);
 
     @GET("bus-types")
     Call<List<BusTypeResponse>> getBusTypes();

@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/md_theme_light_surface"
+    android:background="#f8f9fa"
     android:fitsSystemWindows="true"
     tools:context=".ui.seat.SeatSelectionActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/md_theme_light_surface"
+        android:background="#f8f9fa"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar

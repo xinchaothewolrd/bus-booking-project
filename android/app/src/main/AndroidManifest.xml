@@ -62,6 +62,9 @@
         <activity
             android:name=".ui.history.TicketDetailsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.profile.UpdateProfileActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

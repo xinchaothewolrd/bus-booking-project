@@ -170,3 +170,56 @@ export const updateUserStatus = async (req, res) => {
     return res.status(500).json({ message: "Lỗi hệ thống khi cập nhật trạng thái người dùng." });
   }
 };
+
+// Cập nhật thông tin cá nhân (người dùng tự cập nhật)
+export const updateMe = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const { fullName, email, phone, password } = req.body;
+    
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại." });
+    }
+
+    // Kiểm tra trùng email
+    if (email && email !== user.email) {
+      const duplicateEmail = await User.findOne({ where: { email } });
+      if (duplicateEmail) {
+        return res.status(409).json({ message: "Email đã được sử dụng." });
+      }
+    }
+
+    // Kiểm tra trùng sđt
+    if (phone && phone !== user.phone) {
+      const duplicatePhone = await User.findOne({ where: { phone } });
+      if (duplicatePhone) {
+        return res.status(409).json({ message: "Số điện thoại đã được sử dụng." });
+      }
+    }
+
+    const updateData = {
+      fullName: fullName || user.fullName,
+      email: email || user.email,
+      phone: phone !== undefined ? phone : user.phone,
+    };
+
+    if (password && password.trim() !== "") {
+      updateData.hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    await user.update(updateData);
+
+    const updatedUser = await User.findByPk(id, {
+      attributes: { exclude: ["hashedPassword"] }
+    });
+
+    return res.status(200).json({
+        message: "Cập nhật thông tin thành công.",
+        user: updatedUser
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật cá nhân:", error);
+    return res.status(500).json({ message: "Lỗi hệ thống khi cập nhật thông tin." });
+  }
+};

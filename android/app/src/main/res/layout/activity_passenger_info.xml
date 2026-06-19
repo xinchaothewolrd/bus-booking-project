@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/white"
+        android:background="#f8f9fa"
         android:elevation="2dp"
         android:paddingBottom="16dp">
 
@@ -282,7 +282,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/white"
+        android:background="#f8f9fa"
         android:elevation="8dp"
         android:padding="16dp"
         android:layout_alignParentBottom="true">

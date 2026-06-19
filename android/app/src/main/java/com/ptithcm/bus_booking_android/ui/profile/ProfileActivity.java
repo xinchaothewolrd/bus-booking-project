@@ -22,17 +22,20 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+
+
 public class ProfileActivity extends AppCompatActivity {
 
     private TextView tvAvatarInitials;
     private TextView tvUserName;
     private TextView tvUserEmail;
     private TextView tvUserPhone;
-    private MaterialButton btnEditProfile;
     private LinearLayout menuPersonalInfo;
     private LinearLayout menuBookingHistory;
     private LinearLayout menuSupport;
     private LinearLayout menuLogout;
+    private LinearLayout menuBackToHome;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,20 +47,17 @@ public class ProfileActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tvUserName);
         tvUserEmail = findViewById(R.id.tvUserEmail);
         tvUserPhone = findViewById(R.id.tvUserPhone);
-        btnEditProfile = findViewById(R.id.btnEditProfile);
         menuPersonalInfo = findViewById(R.id.menuPersonalInfo);
         menuBookingHistory = findViewById(R.id.menuBookingHistory);
         menuSupport = findViewById(R.id.menuSupport);
         menuLogout = findViewById(R.id.menuLogout);
+        menuBackToHome = findViewById(R.id.menuBackToHome);
+
 
         loadUserData();
 
-        btnEditProfile.setOnClickListener(v -> {
-            Toast.makeText(this, "Chức năng đang phát triển", Toast.LENGTH_SHORT).show();
-        });
-
         menuPersonalInfo.setOnClickListener(v -> {
-            Toast.makeText(this, "Chức năng đang phát triển", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(ProfileActivity.this, UpdateProfileActivity.class));
         });
 
         menuBookingHistory.setOnClickListener(v -> {
@@ -70,8 +70,8 @@ public class ProfileActivity extends AppCompatActivity {
 
         menuLogout.setOnClickListener(v -> {
             // Clear profile prefs
-            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-            prefs.edit().clear().apply();
+            SharedPreferences clearPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            clearPrefs.edit().clear().apply();
 
             // Clear token prefs
             SharedPreferences appPrefs = getSharedPreferences("app", MODE_PRIVATE);
@@ -81,6 +81,19 @@ public class ProfileActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+
+        menuBackToHome.setOnClickListener(v -> {
+            Intent intent = new Intent(ProfileActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadUserData();
     }
 
     private void loadUserData() {

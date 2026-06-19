@@ -6,13 +6,15 @@ import {
   createUser,
   updateUser,
   deleteUser,
-  updateUserStatus
+  updateUserStatus,
+  updateMe
 } from '../controllers/userController.js'; // Import các hàm từ userController
-import { requireAdmin } from '../middlewares/authMiddleware.js';
+import { protectedRoute, requireAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router(); // Định nghĩa route
 
-router.get('/me', authMe); //  Định nghĩa route GET /me và gán hàm authMe làm handler (bạn cần định nghĩa hàm authMe trong userController.js)
+router.get('/me', protectedRoute, authMe); //  Định nghĩa route GET /me
+router.put('/me', protectedRoute, updateMe); // Cập nhật thông tin cá nhân
 
 // Các API quản lý tài khoản (yêu cầu quyền Admin)
 router.get('/', requireAdmin, getAllUsers);
