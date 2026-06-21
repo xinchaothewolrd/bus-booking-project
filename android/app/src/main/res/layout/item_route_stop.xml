@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:text="Tên điểm"
         android:textSize="16sp"
-        android:textColor="@color/md_theme_light_onSurface"
+        android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"/>
 
     <TextView
@@ -22,5 +22,5 @@
         android:layout_height="wrap_content"
         android:text="Địa chỉ chi tiết"
         android:textSize="14sp"
-        android:textColor="@color/md_theme_light_onSurfaceVariant"/>
+        android:textColor="?attr/colorOnSurfaceVariant"/>
 </LinearLayout>

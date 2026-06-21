@@ -10,6 +10,7 @@ import {
   deleteTicket,
   getTicketsByBooking,
   getTicketsByUser,
+  getTicketsByTrip,
   getTicketByQrCode,
   checkInTicket,
 } from "../controllers/ticketController.js";
@@ -36,6 +37,9 @@ router.get("/user/:userId", protectedRoute, getTicketsByUser);
 // ─── STAFF ROUTES (Nhân viên phòng vé) ───────────────────────
 // GET /api/tickets/check/:qrCode — Tìm vé theo QR code (staff + admin)
 router.get("/check/:qrCode", protectedRoute, requireStaff, getTicketByQrCode);
+
+// GET /api/tickets/trip/:tripId — Lấy danh sách vé theo chuyến (Staff)
+router.get("/trip/:tripId", protectedRoute, requireStaff, getTicketsByTrip);
 
 // PATCH /api/tickets/:id/checkin — Check-in hành khách (staff + admin)
 router.patch("/:id/checkin", protectedRoute, requireStaff, checkInTicket);

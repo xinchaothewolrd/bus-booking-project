@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#f8f9fa"
+    android:background="?attr/colorSurface"
     android:padding="20dp">
 
     <!-- Header: Avatar & Info -->
@@ -21,7 +21,7 @@
             android:layout_height="64dp"
             android:background="@drawable/bg_circle_green_avatar"
             android:text="N"
-            android:textColor="#016E21"
+            android:textColor="?attr/colorPrimary"
             android:textSize="28sp"
             android:textStyle="bold"
             android:gravity="center" />
@@ -38,7 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Nguyen Van A"
-                android:textColor="#191c1d"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="4dp"/>
@@ -48,7 +48,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="nguyenvana@gmail.com"
-                android:textColor="#3f493d"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
 
             <TextView
@@ -56,7 +56,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0901234567"
-                android:textColor="#3f493d"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
@@ -66,11 +66,11 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:text="Chỉnh sửa hồ sơ"
-        android:textColor="#016E21"
+        android:textColor="?attr/colorPrimary"
         android:layout_marginTop="24dp"
         android:layout_marginBottom="32dp"
         app:backgroundTint="@android:color/transparent"
-        app:strokeColor="#016E21"
+        app:strokeColor="?attr/colorPrimary"
         app:strokeWidth="1dp"
         app:cornerRadius="8dp" />
 
@@ -100,17 +100,17 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Thông tin cá nhân"
-                android:textColor="#191c1d"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:layout_marginStart="16dp"/>
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="?attr/colorOnSurfaceVariant"/>
         </LinearLayout>
         
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginStart="40dp" />
 
         <!-- Booking History -->
         <LinearLayout
@@ -130,17 +130,17 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Lịch sử đặt vé"
-                android:textColor="#191c1d"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:layout_marginStart="16dp"/>
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="?attr/colorOnSurfaceVariant"/>
         </LinearLayout>
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginStart="40dp" />
 
         <!-- Support -->
         <LinearLayout
@@ -160,17 +160,47 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Hỗ trợ / Khiếu nại"
-                android:textColor="#191c1d"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:layout_marginStart="16dp"/>
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="#5d6466"/>
+                app:tint="?attr/colorOnSurfaceVariant"/>
         </LinearLayout>
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#edeeef" android:layout_marginStart="40dp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginStart="40dp" />
+
+        <!-- Dark Mode Toggle -->
+        <LinearLayout
+            android:id="@+id/menuTheme"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_dark_mode"
+                app:tint="?attr/colorOnSurface" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Giao diện tối"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"/>
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchDarkMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginStart="40dp" />
 
         <!-- Logout -->
         <LinearLayout
@@ -185,13 +215,13 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_logout_green"
-                app:tint="#ba1a1a"/>
+                app:tint="?attr/colorError"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Đăng xuất"
-                android:textColor="#ba1a1a"
+                android:textColor="?attr/colorError"
                 android:textSize="16sp"
                 android:layout_marginStart="16dp"/>
         </LinearLayout>

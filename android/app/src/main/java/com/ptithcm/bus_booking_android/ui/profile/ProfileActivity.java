@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.ptithcm.bus_booking_android.MainActivity;
 import com.ptithcm.bus_booking_android.R;
+import androidx.appcompat.app.AppCompatDelegate;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.ptithcm.bus_booking_android.ui.auth.LoginActivity;
 import com.ptithcm.bus_booking_android.ui.history.BookingHistoryActivity;
 import com.ptithcm.bus_booking_android.data.api.ApiService;
@@ -32,6 +34,8 @@ public class ProfileActivity extends AppCompatActivity {
     private LinearLayout menuPersonalInfo;
     private LinearLayout menuBookingHistory;
     private LinearLayout menuSupport;
+    private LinearLayout menuTheme;
+    private SwitchMaterial switchDarkMode;
     private LinearLayout menuLogout;
 
     @Override
@@ -48,6 +52,8 @@ public class ProfileActivity extends AppCompatActivity {
         menuPersonalInfo = findViewById(R.id.menuPersonalInfo);
         menuBookingHistory = findViewById(R.id.menuBookingHistory);
         menuSupport = findViewById(R.id.menuSupport);
+        menuTheme = findViewById(R.id.menuTheme);
+        switchDarkMode = findViewById(R.id.switchDarkMode);
         menuLogout = findViewById(R.id.menuLogout);
 
         loadUserData();
@@ -68,10 +74,27 @@ public class ProfileActivity extends AppCompatActivity {
             Toast.makeText(this, "Chức năng đang phát triển", Toast.LENGTH_SHORT).show();
         });
 
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
+        switchDarkMode.setChecked(isDarkMode);
+
+        switchDarkMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("dark_mode", isChecked).apply();
+            if (isChecked) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+            }
+        });
+
+        menuTheme.setOnClickListener(v -> {
+            switchDarkMode.setChecked(!switchDarkMode.isChecked());
+        });
+
         menuLogout.setOnClickListener(v -> {
             // Clear profile prefs
-            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-            prefs.edit().clear().apply();
+            SharedPreferences logoutPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            logoutPrefs.edit().clear().apply();
 
             // Clear token prefs
             SharedPreferences appPrefs = getSharedPreferences("app", MODE_PRIVATE);

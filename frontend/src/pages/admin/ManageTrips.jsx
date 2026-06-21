@@ -41,6 +41,12 @@ function toInputDatetime(dt) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function getMinDatetime() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3200); return () => clearTimeout(t); }, [onClose]);
@@ -229,7 +235,18 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
     if (!form.routeId) e.routeId = "Chọn tuyến đường";
     if (!form.busTypeId) e.busTypeId = "Chọn loại xe";
     if (!form.busId) e.busId = "Chọn xe theo biển số";
-    if (!form.departureTime) e.departureTime = "Chọn giờ khởi hành";
+    if (!form.departureTime) {
+      e.departureTime = "Chọn giờ khởi hành";
+    } else if (new Date(form.departureTime) < new Date()) {
+      e.departureTime = "Không được chọn thời gian trong quá khứ";
+    }
+    
+    if (form.arrivalTimeExpected && form.departureTime) {
+      if (new Date(form.arrivalTimeExpected) <= new Date(form.departureTime)) {
+        e.arrivalTimeExpected = "Giờ cập bến phải sau giờ xuất bến";
+      }
+    }
+
     if (!form.price || isNaN(Number(form.price))) e.price = "Giá vé không hợp lệ";
     return e;
   };
@@ -341,12 +358,13 @@ function TripModal({ trip, routes, busTypes, buses, fares, rules, onClose, onSav
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Giờ xuất bến *</label>
-              <input type="datetime-local" value={form.departureTime} onChange={(e) => set("departureTime", e.target.value)} className={inpClass(errors.departureTime)} />
+              <input type="datetime-local" min={getMinDatetime()} value={form.departureTime} onChange={(e) => set("departureTime", e.target.value)} className={inpClass(errors.departureTime)} />
               {errors.departureTime && <p className="text-[11px] text-red-500 mt-1">{errors.departureTime}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Giờ đến dự kiến</label>
-              <input type="datetime-local" value={form.arrivalTimeExpected} onChange={(e) => set("arrivalTimeExpected", e.target.value)} className={inpClass(false)} />
+              <input type="datetime-local" min={form.departureTime || getMinDatetime()} value={form.arrivalTimeExpected} onChange={(e) => set("arrivalTimeExpected", e.target.value)} className={inpClass(errors.arrivalTimeExpected)} />
+              {errors.arrivalTimeExpected && <p className="text-[11px] text-red-500 mt-1">{errors.arrivalTimeExpected}</p>}
             </div>
           </div>
 

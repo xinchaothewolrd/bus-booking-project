@@ -5,7 +5,7 @@
     <corners android:radius="8dp" />
     <stroke
         android:width="2dp"
-        android:color="@color/md_theme_light_primary"
+        android:color="?attr/colorPrimary"
         android:dashWidth="8dp"
         android:dashGap="4dp" />
 </shape>

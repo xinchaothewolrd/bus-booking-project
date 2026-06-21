@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@color/md_theme_light_surface">
+    android:background="?attr/colorSurface">
 
     <TextView
         android:id="@+id/tvSheetTitle"

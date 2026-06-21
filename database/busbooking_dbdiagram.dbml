@@ -1,0 +1,132 @@
+// =============================================
+// Database: busbooking
+// Generated for: https://dbdiagram.io
+// =============================================
+
+Table users {
+  id          int         [pk, increment, note: "Mã người dùng"]
+  email       varchar(255) [unique, not null, note: "Email đăng nhập"]
+  password    varchar(255) [not null, note: "Mật khẩu đã hash bcrypt"]
+  full_name   varchar(255) [not null, note: "Họ tên đầy đủ"]
+  phone       varchar(255) [unique, note: "Số điện thoại"]
+  role        varchar(20)  [not null, default: "customer", note: "customer | admin"]
+  status      varchar(20)  [not null, default: "active", note: "active | inactive"]
+  createdAt   datetime     [not null]
+  updatedAt   datetime     [not null]
+}
+
+Table bus_types {
+  id          int          [pk, increment, note: "Mã loại xe"]
+  type_name   varchar(50)  [not null, note: "VD: Limousine, Giường nằm, Ghế ngồi"]
+  total_seats int          [not null, note: "Tổng số ghế"]
+  seat_layout json         [note: "JSON: {cols, rows, floors}"]
+}
+
+Table buses {
+  id               int          [pk, increment, note: "Mã xe"]
+  license_plate    varchar(20)  [unique, not null, note: "Biển số xe"]
+  bus_type_id      int          [ref: > bus_types.id, note: "FK → bus_types"]
+  driver_name      varchar(100) [note: "Tên tài xế"]
+  status           enum("active","maintenance") [not null, default: "active"]
+  maintenance_note varchar(255) [note: "Ghi chú bảo trì"]
+}
+
+Table routes {
+  id                  int          [pk, increment, note: "Mã tuyến"]
+  departure_location  varchar(100) [not null, note: "Điểm xuất phát"]
+  arrival_location    varchar(100) [not null, note: "Điểm đến"]
+  distance_km         int          [note: "Khoảng cách (km)"]
+  duration_est        time         [note: "Thời gian dự kiến"]
+}
+
+Table route_stops {
+  id                     int          [pk, increment, note: "Mã điểm dừng"]
+  route_id               int          [not null, ref: > routes.id, note: "FK → routes"]
+  stop_name              varchar(255) [not null, note: "Tên điểm dừng"]
+  address                varchar(255) [note: "Địa chỉ"]
+  stop_type              enum("pickup","dropoff","both") [not null, default: "both"]
+  stop_order             int          [not null, note: "Thứ tự điểm dừng"]
+  arrive_offset_minutes  int          [default: 0, note: "Số phút offset từ giờ khởi hành"]
+}
+
+Table route_fares {
+  id           int             [pk, increment, note: "Mã giá vé"]
+  route_id     int             [ref: > routes.id, note: "FK → routes"]
+  bus_type_id  int             [ref: > bus_types.id, note: "FK → bus_types"]
+  base_price   decimal(12,2)  [not null, note: "Giá vé cơ bản (VNĐ)"]
+}
+
+Table price_rules {
+  id               int             [pk, increment, note: "Mã quy tắc giá"]
+  rule_name        varchar(100)    [not null, note: "Tên quy tắc (VD: Holiday Surge)"]
+  route_id         int             [ref: > routes.id, note: "FK → routes (null = áp dụng tất cả)"]
+  bus_type_id      int             [ref: > bus_types.id, note: "FK → bus_types (null = áp dụng tất cả)"]
+  price_multiplier decimal(5,2)   [note: "Hệ số nhân giá (VD: 1.2 = +20%)"]
+  price_delta      decimal(12,2)  [note: "Số tiền cộng thêm cố định (VNĐ)"]
+  start_date       datetime        [not null, note: "Ngày bắt đầu áp dụng"]
+  end_date         datetime        [not null, note: "Ngày kết thúc áp dụng"]
+  priority         int             [not null, default: 1, note: "Ưu tiên (số lớn = ưu tiên cao hơn)"]
+  status           varchar(20)     [not null, default: "active"]
+}
+
+Table trips {
+  id                    int          [pk, increment, note: "Mã chuyến"]
+  route_id              int          [ref: > routes.id, note: "FK → routes"]
+  bus_id                int          [ref: > buses.id, note: "FK → buses"]
+  departure_time        datetime     [not null, note: "Giờ khởi hành"]
+  arrival_time_expected datetime     [note: "Giờ đến dự kiến"]
+  status                enum("scheduled","departing","completed","cancelled") [default: "scheduled"]
+  cancel_policy         text         [note: "Chính sách huỷ vé"]
+}
+
+Table trip_seats {
+  id           int         [pk, increment, note: "Mã ghế chuyến"]
+  trip_id      int         [ref: > trips.id, note: "FK → trips"]
+  seat_number  varchar(10) [not null, note: "Số ghế (VD: A1, B3)"]
+  status       enum("available","pending","booked") [not null, default: "available"]
+  pending_until datetime   [note: "Thời hạn giữ ghế (pending)"]
+}
+
+Table bookings {
+  id           int             [pk, increment, note: "Mã đặt chỗ"]
+  user_id      int             [not null, ref: > users.id, note: "FK → users"]
+  trip_id      int             [not null, ref: > trips.id, note: "FK → trips"]
+  total_amount decimal(10,2)  [note: "Tổng tiền đặt chỗ (VNĐ)"]
+  status       enum("pending","paid","cancelled") [not null, default: "pending"]
+  booking_time datetime        [not null, note: "Thời điểm đặt"]
+  created_at   datetime        [not null]
+  updated_at   datetime        [not null]
+}
+
+Table tickets {
+  id               int          [pk, increment, note: "Mã vé"]
+  booking_id       int          [not null, ref: > bookings.id, note: "FK → bookings"]
+  trip_seat_id     int          [not null, ref: > trip_seats.id, note: "FK → trip_seats"]
+  passenger_name   varchar(100) [note: "Tên hành khách"]
+  passenger_phone  varchar(20)  [note: "SĐT hành khách"]
+  pickup_stop_id   int          [ref: > route_stops.id, note: "Điểm đón (FK → route_stops)"]
+  dropoff_stop_id  int          [ref: > route_stops.id, note: "Điểm trả (FK → route_stops)"]
+  qr_code          varchar(255) [unique, note: "Mã QR vé (VD: OB-1-A8-0NWG)"]
+  status           enum("unused","used","cancelled") [not null, default: "unused"]
+  created_at       datetime     [not null]
+  updated_at       datetime     [not null]
+}
+
+Table payments {
+  id               int             [pk, increment, note: "Mã thanh toán"]
+  booking_id       int             [unique, not null, ref: - bookings.id, note: "FK → bookings (1-1)"]
+  payment_method   enum("momo","zalo_pay","bank_transfer","cash","card") [not null]
+  amount           decimal(10,2)  [not null, note: "Số tiền thanh toán (VNĐ)"]
+  status           enum("pending","success","failed","refunded") [not null, default: "pending"]
+  transaction_time datetime        [note: "Thời điểm giao dịch thành công"]
+  created_at       datetime        [not null]
+  updated_at       datetime        [not null]
+}
+
+Table sessions {
+  sid     varchar(36)  [pk, note: "Session ID"]
+  expires datetime     [note: "Thời hạn session"]
+  data    text         [note: "Dữ liệu session (JSON serialized)"]
+  createdAt datetime
+  updatedAt datetime
+}

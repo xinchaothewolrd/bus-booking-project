@@ -292,6 +292,40 @@ export const getTicketsByBooking = async (req, res) => {
   }
 };
 
+// GET /api/tickets/trip/:tripId — Lấy tất cả tickets của 1 chuyến xe (Boarding Manifest)
+export const getTicketsByTrip = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    if (!tripId) return res.status(400).json({ message: "Thiếu tripId." });
+
+    const tickets = await Ticket.findAll({
+      include: [
+        {
+          model: Booking,
+          as: "Booking",
+          where: { tripId, status: "paid" }, // Chỉ lấy những vé đã thanh toán
+          attributes: ["id", "userId", "tripId", "status", "totalAmount"],
+        },
+        {
+          model: TripSeat,
+          as: "Seat",
+          attributes: ["id", "seatNumber", "status"],
+        },
+        { model: RouteStop, as: "PickupStop" },
+        { model: RouteStop, as: "DropoffStop" },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json(tickets);
+  } catch (error) {
+    console.error("Error getting tickets by trip:", error);
+    return res
+      .status(500)
+      .json({ message: "Đã xảy ra lỗi khi lấy danh sách vé của chuyến xe." });
+  }
+};
+
 // GET /api/tickets/user/:userId — Lấy tất cả tickets của 1 user
 export const getTicketsByUser = async (req, res) => {
   try {

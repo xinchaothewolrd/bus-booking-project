@@ -93,11 +93,11 @@ export default function ManageCheckin() {
     }
   }, []);
 
-  // Fetch trips and routes for Boarding List
+  // Fetch trips and routes for Boarding List and Ticket Details
   useEffect(() => {
-    if (role === "admin") {
-      const fetchListDependencies = async () => {
-        try {
+    const fetchListDependencies = async () => {
+      try {
+        if (role === "admin") {
           const [tRes, rRes, bRes] = await Promise.all([
             api.get("/trips"),
             api.get("/routes"),
@@ -106,12 +106,19 @@ export default function ManageCheckin() {
           setTrips(Array.isArray(tRes.data) ? tRes.data : tRes.data.data ?? []);
           setRoutes(Array.isArray(rRes.data) ? rRes.data : rRes.data.data ?? []);
           setBookings(Array.isArray(bRes.data) ? bRes.data : bRes.data.data ?? []);
-        } catch (err) {
-          console.error("Lỗi tải thông tin danh sách soát vé:", err);
+        } else {
+          const [tRes, rRes] = await Promise.all([
+            api.get("/trips"),
+            api.get("/routes"),
+          ]);
+          setTrips(Array.isArray(tRes.data) ? tRes.data : tRes.data.data ?? []);
+          setRoutes(Array.isArray(rRes.data) ? rRes.data : rRes.data.data ?? []);
         }
-      };
-      fetchListDependencies();
-    }
+      } catch (err) {
+        console.error("Lỗi tải thông tin:", err);
+      }
+    };
+    fetchListDependencies();
   }, [role]);
 
   // Global Check QR / Ticket ID
