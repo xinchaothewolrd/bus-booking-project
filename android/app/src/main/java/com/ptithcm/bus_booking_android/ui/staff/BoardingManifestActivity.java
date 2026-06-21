@@ -2,6 +2,7 @@ package com.ptithcm.bus_booking_android.ui.staff;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +29,8 @@ public class BoardingManifestActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private RecyclerView rvPassengers;
     private BoardingManifestAdapter adapter;
+    private LinearLayout btnFilterAll, btnFilterCheckedIn, btnFilterNotCheckedIn;
+    private List<UserTicketsResponse> allTickets = new ArrayList<>();
 
     private ApiService apiService;
     private int tripId = -1;
@@ -59,10 +62,44 @@ public class BoardingManifestActivity extends AppCompatActivity {
         tvEmptyState = findViewById(R.id.tvEmptyState);
         progressBar = findViewById(R.id.progressBar);
         
+        btnFilterAll = findViewById(R.id.btnFilterAll);
+        btnFilterCheckedIn = findViewById(R.id.btnFilterCheckedIn);
+        btnFilterNotCheckedIn = findViewById(R.id.btnFilterNotCheckedIn);
+        
+        btnFilterAll.setOnClickListener(v -> filterTickets("all"));
+        btnFilterCheckedIn.setOnClickListener(v -> filterTickets("used"));
+        btnFilterNotCheckedIn.setOnClickListener(v -> filterTickets("unused"));
+        
         rvPassengers = findViewById(R.id.rvPassengers);
         rvPassengers.setLayoutManager(new LinearLayoutManager(this));
         adapter = new BoardingManifestAdapter(new ArrayList<>());
         rvPassengers.setAdapter(adapter);
+    }
+
+    private void filterTickets(String status) {
+        List<UserTicketsResponse> filtered = new ArrayList<>();
+        for (UserTicketsResponse t : allTickets) {
+            if ("all".equals(status) || status.equals(t.getStatus())) {
+                filtered.add(t);
+            }
+        }
+        
+        adapter.updateData(filtered);
+        
+        if (filtered.isEmpty()) {
+            tvEmptyState.setVisibility(View.VISIBLE);
+            rvPassengers.setVisibility(View.GONE);
+            if ("used".equals(status)) {
+                tvEmptyState.setText("Chưa có hành khách nào lên xe.");
+            } else if ("unused".equals(status)) {
+                tvEmptyState.setText("Tất cả hành khách đã lên xe.");
+            } else {
+                tvEmptyState.setText("🚌\n\nChưa có hành khách nào đặt vé\ncho chuyến xe này.");
+            }
+        } else {
+            tvEmptyState.setVisibility(View.GONE);
+            rvPassengers.setVisibility(View.VISIBLE);
+        }
     }
 
     private void loadManifest() {
@@ -72,23 +109,13 @@ public class BoardingManifestActivity extends AppCompatActivity {
             public void onResponse(Call<List<UserTicketsResponse>> call, Response<List<UserTicketsResponse>> response) {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
-                    List<UserTicketsResponse> tickets = response.body();
+                    allTickets = response.body();
                     
-                    if (tickets.isEmpty()) {
-                        tvEmptyState.setVisibility(View.VISIBLE);
-                        rvPassengers.setVisibility(View.GONE);
-                    } else {
-                        tvEmptyState.setVisibility(View.GONE);
-                        rvPassengers.setVisibility(View.VISIBLE);
-                    }
-                    
-                    adapter.updateData(tickets);
-                    
-                    int total = tickets.size();
+                    int total = allTickets.size();
                     int checkedIn = 0;
                     int notCheckedIn = 0;
                     
-                    for (UserTicketsResponse t : tickets) {
+                    for (UserTicketsResponse t : allTickets) {
                         if ("used".equals(t.getStatus())) {
                             checkedIn++;
                         } else if ("unused".equals(t.getStatus())) {
@@ -99,6 +126,8 @@ public class BoardingManifestActivity extends AppCompatActivity {
                     tvTotal.setText(String.valueOf(total));
                     tvCheckedIn.setText(String.valueOf(checkedIn));
                     tvNotCheckedIn.setText(String.valueOf(notCheckedIn));
+                    
+                    filterTickets("all");
                 } else {
                     Toast.makeText(BoardingManifestActivity.this, "Lỗi khi lấy danh sách hành khách", Toast.LENGTH_SHORT).show();
                 }
