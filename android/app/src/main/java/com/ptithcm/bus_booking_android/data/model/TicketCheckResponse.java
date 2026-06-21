@@ -61,10 +61,25 @@ public class TicketCheckResponse {
         @SerializedName("departureTime")
         private String departureTime;
 
+        @SerializedName("route")
+        private RouteData route;
+
         public int getId() { return id; }
         public int getTripId() { return tripId; }
         public String getStatus() { return status; }
         public String getDepartureTime() { return departureTime; }
+        public RouteData getRoute() { return route; }
+    }
+
+    public static class RouteData {
+        @SerializedName("departureLocation")
+        private String departureLocation;
+
+        @SerializedName("arrivalLocation")
+        private String arrivalLocation;
+
+        public String getDepartureLocation() { return departureLocation; }
+        public String getArrivalLocation() { return arrivalLocation; }
     }
 
     public static class StopData {

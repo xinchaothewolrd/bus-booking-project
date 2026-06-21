@@ -386,7 +386,13 @@ export const getTicketByQrCode = async (req, res) => {
         {
           model: Booking,
           as: "Booking",
-          include: [{ model: Trip, as: "Trip" }],
+          include: [
+            { 
+              model: Trip, 
+              as: "Trip",
+              include: [{ model: Route, as: "route" }]
+            }
+          ],
         },
         {
           model: TripSeat,
@@ -433,6 +439,10 @@ export const getTicketByQrCode = async (req, res) => {
           tripId: ticket.Booking?.tripId,
           departureTime: ticket.Booking?.Trip?.departureTime,
           arrivalTimeExpected: ticket.Booking?.Trip?.arrivalTimeExpected,
+          route: ticket.Booking?.Trip?.route ? {
+            departureLocation: ticket.Booking.Trip.route.departureLocation,
+            arrivalLocation: ticket.Booking.Trip.route.arrivalLocation,
+          } : null,
         },
       },
     });

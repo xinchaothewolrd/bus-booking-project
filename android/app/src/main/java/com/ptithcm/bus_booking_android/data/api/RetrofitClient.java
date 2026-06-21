@@ -21,7 +21,7 @@ import java.util.List;
 
 public class RetrofitClient {
 
-    private static final String BASE_URL = "http://10.0.2.2:3000/api/";
+    private static final String BASE_URL = "http://127.0.0.1:3000/api/";
     private static Retrofit retrofit;
     private static final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
 

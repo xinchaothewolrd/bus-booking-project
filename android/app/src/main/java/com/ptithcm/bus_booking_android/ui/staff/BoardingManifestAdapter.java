@@ -1,7 +1,10 @@
 package com.ptithcm.bus_booking_android.ui.staff;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.net.Uri;
+import androidx.core.content.ContextCompat;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -51,18 +54,20 @@ public class BoardingManifestAdapter extends RecyclerView.Adapter<BoardingManife
         }
 
         String status = ticket.getStatus();
+        holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_checked_banner);
+        
         if ("used".equals(status)) {
             holder.tvStatusBadge.setText("Đã lên xe");
-            holder.tvStatusBadge.setTextColor(Color.parseColor("#059669"));
-            holder.tvStatusBadge.setBackgroundColor(Color.parseColor("#F0FDF4"));
+            holder.tvStatusBadge.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_success_text));
+            holder.tvStatusBadge.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_success_bg)));
         } else if ("cancelled".equals(status)) {
             holder.tvStatusBadge.setText("Đã hủy");
-            holder.tvStatusBadge.setTextColor(Color.parseColor("#DC2626"));
-            holder.tvStatusBadge.setBackgroundColor(Color.parseColor("#FEF2F2"));
+            holder.tvStatusBadge.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_error_text));
+            holder.tvStatusBadge.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_error_bg)));
         } else {
             holder.tvStatusBadge.setText("Chưa lên xe");
-            holder.tvStatusBadge.setTextColor(Color.parseColor("#D97706"));
-            holder.tvStatusBadge.setBackgroundColor(Color.parseColor("#FFFBEB"));
+            holder.tvStatusBadge.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_warning_text));
+            holder.tvStatusBadge.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_warning_bg)));
         }
 
         holder.btnCall.setOnClickListener(v -> {

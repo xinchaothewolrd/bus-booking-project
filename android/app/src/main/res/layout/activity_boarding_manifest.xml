@@ -38,11 +38,16 @@
             android:padding="12dp">
             
             <LinearLayout
+                android:id="@+id/btnFilterAll"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground">
                 
                 <TextView
                     android:id="@+id/tvTotal"
@@ -56,15 +61,21 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Tổng vé"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp" />
             </LinearLayout>
             
             <LinearLayout
+                android:id="@+id/btnFilterCheckedIn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground">
                 
                 <TextView
                     android:id="@+id/tvCheckedIn"
@@ -78,15 +89,21 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Đã lên xe"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp" />
             </LinearLayout>
             
             <LinearLayout
+                android:id="@+id/btnFilterNotCheckedIn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground">
                 
                 <TextView
                     android:id="@+id/tvNotCheckedIn"
@@ -100,6 +117,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Chưa lên xe"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>

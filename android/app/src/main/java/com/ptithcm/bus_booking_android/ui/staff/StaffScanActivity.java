@@ -354,7 +354,13 @@ public class StaffScanActivity extends AppCompatActivity {
         tvSeatNumber.setText(ticket.getSeatNumber() != null ? ticket.getSeatNumber() : "—");
         if (ticket.getBooking() != null) {
             tvBookingId.setText("Đơn #" + ticket.getBooking().getId());
-            tvRoute.setText("Chuyến #" + ticket.getBooking().getTripId());
+            if (ticket.getBooking().getRoute() != null) {
+                String from = ticket.getBooking().getRoute().getDepartureLocation();
+                String to = ticket.getBooking().getRoute().getArrivalLocation();
+                tvRoute.setText(from + " ➔ " + to);
+            } else {
+                tvRoute.setText("Chuyến #" + ticket.getBooking().getTripId());
+            }
             tvDepartureTime.setText(formatDateTime(ticket.getBooking().getDepartureTime()));
         }
 
