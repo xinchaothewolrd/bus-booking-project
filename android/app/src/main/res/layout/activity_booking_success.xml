@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="#F7F8FA"
+    android:background="?attr/colorSurface"
     android:padding="24dp">
 
     <!-- Scrollable content -->
@@ -47,7 +47,7 @@
                     app:cardCornerRadius="40dp"
                     app:cardElevation="4dp"
                     app:strokeWidth="0dp"
-                    app:cardBackgroundColor="@color/md_theme_light_primary">
+                    app:cardBackgroundColor="?attr/colorPrimary">
 
                     <ImageView
                         android:layout_width="44dp"
@@ -63,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Đặt vé thành công!"
-                android:textColor="#1A202C"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="4dp"/>
@@ -72,7 +72,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Hành trình của bạn đã được xác nhận."
-                android:textColor="#718096"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp"
                 android:layout_marginBottom="28dp"/>
 
@@ -84,7 +84,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -98,7 +98,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="MÃ ĐẶT VÉ"
-                        android:textColor="#718096"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.1"
@@ -111,7 +111,7 @@
                         android:background="@drawable/bg_dashed_border_green"
                         android:gravity="center"
                         android:paddingVertical="14dp"
-                        android:textColor="@color/md_theme_light_primary"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="24sp"
                         android:textStyle="bold"
                         tools:text="ST-9428-VN"/>
@@ -126,7 +126,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -157,14 +157,14 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Điểm đi"
-                                    android:textColor="#718096"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textSize="11sp"/>
                                 <TextView
                                     android:id="@+id/tvStartCity"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     tools:text="TP. Hồ Chí Minh"
-                                    android:textColor="#1A202C"
+                                    android:textColor="?attr/colorOnSurface"
                                     android:textSize="14sp"
                                     android:textStyle="bold"/>
                             </LinearLayout>
@@ -186,20 +186,20 @@
                                     android:layout_width="0dp"
                                     android:layout_height="1.5dp"
                                     android:layout_weight="1"
-                                    android:background="#CBD5E0"/>
+                                    android:background="?attr/colorOutline"/>
 
                                 <ImageView
                                     android:layout_width="14dp"
                                     android:layout_height="14dp"
                                     android:src="@drawable/ic_directions_bus"
-                                    app:tint="@color/md_theme_light_primary"
+                                    app:tint="?attr/colorPrimary"
                                     android:layout_marginHorizontal="4dp"/>
 
                                 <View
                                     android:layout_width="0dp"
                                     android:layout_height="1.5dp"
                                     android:layout_weight="1"
-                                    android:background="#CBD5E0"/>
+                                    android:background="?attr/colorOutline"/>
 
                                 <View
                                     android:layout_width="6dp"
@@ -217,14 +217,14 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Điểm đến"
-                                    android:textColor="#718096"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textSize="11sp"/>
                                 <TextView
                                     android:id="@+id/tvEndCity"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     tools:text="Đà Lạt"
-                                    android:textColor="#1A202C"
+                                    android:textColor="?attr/colorOnSurface"
                                     android:textSize="14sp"
                                     android:textStyle="bold"/>
                             </LinearLayout>
@@ -233,7 +233,7 @@
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:background="#EDF2F7"
+                            android:background="?attr/colorOutline"
                             android:layout_marginBottom="16dp"/>
 
                         <!-- Date and Departure Info -->
@@ -254,7 +254,7 @@
                                     android:layout_width="18dp"
                                     android:layout_height="18dp"
                                     android:src="@drawable/ic_calendar_today"
-                                    app:tint="#718096"
+                                    app:tint="?attr/colorOnSurfaceVariant"
                                     android:layout_marginEnd="8dp"/>
 
                                 <LinearLayout
@@ -265,14 +265,14 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Ngày"
-                                        android:textColor="#718096"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
                                         android:textSize="11sp"/>
                                     <TextView
                                         android:id="@+id/tvDateLabel"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         tools:text="25 Tháng 12, 2023"
-                                        android:textColor="#1A202C"
+                                        android:textColor="?attr/colorOnSurface"
                                         android:textSize="13sp"
                                         android:textStyle="bold"/>
                                 </LinearLayout>
@@ -290,7 +290,7 @@
                                     android:layout_width="18dp"
                                     android:layout_height="18dp"
                                     android:src="@drawable/ic_calendar_today"
-                                    app:tint="#718096"
+                                    app:tint="?attr/colorOnSurfaceVariant"
                                     android:layout_marginEnd="8dp"
                                     android:visibility="gone"/>
 
@@ -302,14 +302,14 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Giờ khởi hành"
-                                        android:textColor="#718096"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
                                         android:textSize="11sp"/>
                                     <TextView
                                         android:id="@+id/tvTimeLabel"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         tools:text="08:30 AM"
-                                        android:textColor="#1A202C"
+                                        android:textColor="?attr/colorOnSurface"
                                         android:textSize="13sp"
                                         android:textStyle="bold"/>
                                 </LinearLayout>
@@ -323,7 +323,7 @@
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="#F7F8FA"
+                        android:background="?attr/colorSurface"
                         android:padding="16dp">
 
                         <LinearLayout
@@ -337,7 +337,7 @@
                                 android:layout_width="16dp"
                                 android:layout_height="16dp"
                                 android:src="@drawable/ic_steering_wheel"
-                                app:tint="#718096"
+                                app:tint="?attr/colorOnSurfaceVariant"
                                 android:layout_marginEnd="6dp"/>
 
                             <TextView
@@ -345,7 +345,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="Ghế 24A, 25A"
-                                android:textColor="#2D3748"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textSize="13sp"/>
                         </LinearLayout>
 
@@ -355,7 +355,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             tools:text="1.200.000đ"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"
                             android:textStyle="bold"/>
                     </RelativeLayout>
@@ -383,7 +383,7 @@
             android:textStyle="bold"
             android:textColor="@color/white"
             app:cornerRadius="12dp"
-            app:backgroundTint="@color/md_theme_light_primary"
+            app:backgroundTint="?attr/colorPrimary"
             app:icon="@drawable/ic_confirmation_number"
             app:iconGravity="textStart"
             app:iconSize="18dp"
@@ -399,16 +399,16 @@
             android:text="Về trang chủ"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#4A5568"
+            android:textColor="?attr/colorOnSurfaceVariant"
             app:cornerRadius="12dp"
             app:backgroundTint="@color/white"
             app:strokeWidth="1.5dp"
-            app:strokeColor="#E2E8F0"
+            app:strokeColor="?attr/colorOutline"
             app:icon="@drawable/ic_home"
             app:iconGravity="textStart"
             app:iconSize="18dp"
             app:iconPadding="8dp"
-            app:iconTint="#4A5568"
+            app:iconTint="?attr/colorOnSurfaceVariant"
             android:insetTop="0dp"
             android:insetBottom="0dp"/>
 

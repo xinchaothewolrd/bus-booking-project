@@ -13,6 +13,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 import retrofit2.http.PUT;
@@ -40,6 +41,9 @@ public interface ApiService {
             @Query("date") String date
     );
 
+    @GET("trips")
+    Call<List<com.ptithcm.bus_booking_android.data.model.StaffTripResponse>> getAllTrips();
+
     @GET("trip-seats/trip/{tripId}")
     Call<List<TripSeatResponse>> getSeatsByTripId(@retrofit2.http.Path("tripId") int tripId);
 
@@ -63,4 +67,14 @@ public interface ApiService {
 
     @POST("bookings/{bookingId}/cancel")
     Call<com.ptithcm.bus_booking_android.data.model.MessageResponse> cancelBooking(@Path("bookingId") int bookingId);
+
+    // ─── STAFF ENDPOINTS ────────────────────────────────────────────────────────
+    @GET("tickets/check/{qrCode}")
+    Call<com.ptithcm.bus_booking_android.data.model.TicketCheckResponse> checkTicketByQr(@Path("qrCode") String qrCode);
+
+    @GET("tickets/trip/{tripId}")
+    Call<List<com.ptithcm.bus_booking_android.data.model.UserTicketsResponse>> getTicketsByTrip(@Path("tripId") int tripId);
+
+    @PATCH("tickets/{id}/checkin")
+    Call<com.ptithcm.bus_booking_android.data.model.MessageResponse> checkInTicket(@Path("id") int ticketId);
 }

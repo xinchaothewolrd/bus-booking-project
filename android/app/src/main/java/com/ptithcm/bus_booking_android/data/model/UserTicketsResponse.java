@@ -18,6 +18,9 @@ public class UserTicketsResponse {
     @SerializedName("passengerName")
     private String passengerName;
 
+    @SerializedName("passengerPhone")
+    private String passengerPhone;
+
     @SerializedName("Booking")
     private BookingData booking;
 
@@ -29,6 +32,7 @@ public class UserTicketsResponse {
     public String getStatus() { return status; }
     public String getCreatedAt() { return createdAt; }
     public String getPassengerName() { return passengerName; }
+    public String getPassengerPhone() { return passengerPhone; }
     public BookingData getBooking() { return booking; }
     public SeatData getSeat() { return seat; }
 

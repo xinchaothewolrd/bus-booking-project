@@ -162,7 +162,11 @@ public class BookingConfirmationActivity extends AppCompatActivity {
                 startActivity(successIntent);
                 finish();
             } else {
-                Toast.makeText(this, "Thanh toán thất bại hoặc đã bị hủy!", Toast.LENGTH_LONG).show();
+                // Navigate to Error Screen
+                Intent errorIntent = new Intent(this, BookingErrorActivity.class);
+                errorIntent.putExtra("error_message", "Giao dịch đã bị huỷ hoặc có lỗi xảy ra trong quá trình thanh toán qua VNPay.");
+                startActivity(errorIntent);
+
                 btnPay.setEnabled(true);
                 btnPay.setText("Thanh toán ngay");
             }
@@ -243,7 +247,10 @@ public class BookingConfirmationActivity extends AppCompatActivity {
         });
 
         paymentViewModel.getErrorLiveData().observe(this, error -> {
-            Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            Intent errorIntent = new Intent(this, BookingErrorActivity.class);
+            errorIntent.putExtra("error_message", error);
+            startActivity(errorIntent);
+
             btnPay.setEnabled(true);
             btnPay.setText("Thanh toán ngay");
         });
@@ -299,7 +306,10 @@ public class BookingConfirmationActivity extends AppCompatActivity {
                             }
                         }
                     } catch (Exception ignored) {}
-                    Toast.makeText(BookingConfirmationActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                    
+                    Intent errorIntent = new Intent(BookingConfirmationActivity.this, BookingErrorActivity.class);
+                    errorIntent.putExtra("error_message", errorMsg);
+                    startActivity(errorIntent);
                 }
             }
 
@@ -307,7 +317,10 @@ public class BookingConfirmationActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<BookingResponse> call, @NonNull Throwable t) {
                 btnPay.setEnabled(true);
                 btnPay.setText("Thanh toán ngay");
-                Toast.makeText(BookingConfirmationActivity.this, "Lỗi kết nối máy chủ!", Toast.LENGTH_SHORT).show();
+                
+                Intent errorIntent = new Intent(BookingConfirmationActivity.this, BookingErrorActivity.class);
+                errorIntent.putExtra("error_message", "Lỗi kết nối máy chủ! Vui lòng thử lại sau.");
+                startActivity(errorIntent);
             }
         });
     }

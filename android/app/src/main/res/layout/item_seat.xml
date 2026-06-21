@@ -8,7 +8,7 @@
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:strokeWidth="1.5dp"
-    app:strokeColor="@color/md_theme_light_outlineVariant">
+    app:strokeColor="?attr/colorOutline">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,7 +30,7 @@
             android:text="A01"
             android:textStyle="bold"
             android:textSize="16sp"
-            android:textColor="@color/md_theme_light_onSurface" />
+            android:textColor="?attr/colorOnSurface" />
 
     </LinearLayout>
 

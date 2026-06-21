@@ -36,10 +36,18 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Tự động đăng nhập
         SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
         String token = prefs.getString("access_token", null);
         if (token != null && !token.isEmpty()) {
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            SharedPreferences appPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            String savedRole = appPrefs.getString("user_role", "customer");
+            Intent intent;
+            if ("staff".equals(savedRole)) {
+                intent = new Intent(LoginActivity.this, com.ptithcm.bus_booking_android.ui.staff.StaffScanActivity.class);
+            } else {
+                intent = new Intent(LoginActivity.this, MainActivity.class);
+            }
             startActivity(intent);
             finish();
             return;
@@ -87,26 +95,29 @@ public class LoginActivity extends AppCompatActivity {
                 SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
                 prefs.edit().putString("access_token", token).apply();
 
-                // Fetch profile to get userId and save to preferences
                 ApiService apiService = RetrofitClient.getClient(this).create(ApiService.class);
                 apiService.getProfile().enqueue(new Callback<UserResponse>() {
                     @Override
                     public void onResponse(Call<UserResponse> call, Response<UserResponse> res) {
                         if (res.isSuccessful() && res.body() != null && res.body().getUser() != null) {
                             SharedPreferences appPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+                            String role = res.body().getUser().getRole();
                             appPrefs.edit()
                                     .putInt("user_id", res.body().getUser().getId())
                                     .putString("user_name", res.body().getUser().getFullName())
                                     .putString("user_email", res.body().getUser().getEmail())
                                     .putString("user_phone", res.body().getUser().getPhone())
+                                    .putString("user_role", role)
                                     .apply();
+                            proceedByRole(role);
+                        } else {
+                            proceedByRole("customer");
                         }
-                        proceedToMain();
                     }
 
                     @Override
                     public void onFailure(Call<UserResponse> call, Throwable t) {
-                        proceedToMain();
+                        proceedByRole("customer");
                     }
                 });
 
@@ -116,9 +127,14 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void proceedToMain() {
+    private void proceedByRole(String role) {
         Toast.makeText(this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        Intent intent;
+        if ("staff".equals(role)) {
+            intent = new Intent(LoginActivity.this, com.ptithcm.bus_booking_android.ui.staff.StaffScanActivity.class);
+        } else {
+            intent = new Intent(LoginActivity.this, MainActivity.class);
+        }
         startActivity(intent);
         finish();
     }

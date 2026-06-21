@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="#f8f9fa"
+    android:background="?attr/colorSurface"
     tools:context=".ui.trip.TripListActivity">
 
     <com.google.android.material.appbar.AppBarLayout
@@ -21,11 +21,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/md_theme_light_onSurface"
+            app:navigationIconTint="?attr/colorOnSurface"
             app:title="Hồ Chí Minh → Đà Lạt"
             app:subtitle="20/11/2026"
-            app:titleTextColor="@color/md_theme_light_onSurface"
-            app:subtitleTextColor="@color/md_theme_light_onSurfaceVariant"/>
+            app:titleTextColor="?attr/colorOnSurface"
+            app:subtitleTextColor="?attr/colorOnSurfaceVariant"/>
 
         <HorizontalScrollView
             android:layout_width="match_parent"
@@ -70,7 +70,7 @@
         tools:text="12 chuyến xe phù hợp"
         android:textStyle="bold"
         android:textSize="16sp"
-        android:textColor="@color/md_theme_light_onSurface"/>
+        android:textColor="?attr/colorOnSurface"/>
 
     <FrameLayout
         android:layout_width="match_parent"

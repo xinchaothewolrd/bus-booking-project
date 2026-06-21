@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#f8f9fa"
+    android:background="?attr/colorSurface"
     android:fitsSystemWindows="true"
     tools:context=".ui.seat.SeatSelectionActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#f8f9fa"
+        android:background="?attr/colorSurface"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -19,9 +19,9 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Chọn chỗ ngồi"
-            app:titleTextColor="@color/md_theme_light_onSurface"
+            app:titleTextColor="?attr/colorOnSurface"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/md_theme_light_onSurface" />
+            app:navigationIconTint="?attr/colorOnSurface" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -88,21 +88,21 @@
                                 android:text="ĐIỂM ĐÓN"
                                 android:textSize="12sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/md_theme_light_onSurfaceVariant" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                             <TextView
                                 android:id="@+id/tvPickupName"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Đang tải..."
                                 android:textStyle="bold"
-                                android:textColor="@color/md_theme_light_onSurface" />
+                                android:textColor="?attr/colorOnSurface" />
                             <TextView
                                 android:id="@+id/tvPickupAddress"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="..."
                                 android:textSize="12sp"
-                                android:textColor="@color/md_theme_light_onSurfaceVariant" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
 
                         <TextView
@@ -111,7 +111,7 @@
                             android:layout_height="wrap_content"
                             android:text="Thay\nđổi"
                             android:textAlignment="center"
-                            android:textColor="@color/md_theme_light_primary"
+                            android:textColor="?attr/colorPrimary"
                             android:textStyle="bold"
                             android:textSize="12sp"
                             android:layout_gravity="center_vertical" />
@@ -132,7 +132,7 @@
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/ic_location_on"
-                                app:tint="@color/md_theme_light_primary" />
+                                app:tint="?attr/colorPrimary" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -147,21 +147,21 @@
                                 android:text="ĐIỂM TRẢ"
                                 android:textSize="12sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/md_theme_light_onSurfaceVariant" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                             <TextView
                                 android:id="@+id/tvDropoffName"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Đang tải..."
                                 android:textStyle="bold"
-                                android:textColor="@color/md_theme_light_onSurface" />
+                                android:textColor="?attr/colorOnSurface" />
                             <TextView
                                 android:id="@+id/tvDropoffAddress"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="..."
                                 android:textSize="12sp"
-                                android:textColor="@color/md_theme_light_onSurfaceVariant" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
 
                         <TextView
@@ -170,7 +170,7 @@
                             android:layout_height="wrap_content"
                             android:text="Thay\nđổi"
                             android:textAlignment="center"
-                            android:textColor="@color/md_theme_light_primary"
+                            android:textColor="?attr/colorPrimary"
                             android:textStyle="bold"
                             android:textSize="12sp"
                             android:layout_gravity="center_vertical" />
@@ -293,7 +293,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginBottom="16dp"
                     android:src="@drawable/ic_steering_wheel"
-                    app:tint="@color/md_theme_light_onSurfaceVariant" />
+                    app:tint="?attr/colorOnSurfaceVariant" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvSeats"
@@ -310,7 +310,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/md_theme_light_surfaceContainerLowest"
+        android:background="?attr/colorSurface"
         android:orientation="vertical"
         android:padding="16dp"
         android:elevation="16dp">
@@ -333,7 +333,7 @@
                 android:text="0đ"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/md_theme_light_primary" />
+                android:textColor="?attr/colorPrimary" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

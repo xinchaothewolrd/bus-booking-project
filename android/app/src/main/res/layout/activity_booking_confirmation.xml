@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="#F7F8FA">
+    android:background="?attr/colorSurface">
 
     <!-- Top White Header (Toolbar) -->
     <LinearLayout
@@ -29,7 +29,7 @@
                 android:layout_centerVertical="true"
                 android:layout_alignParentStart="true"
                 android:src="@drawable/ic_arrow_back"
-                app:tint="@color/md_theme_light_primary"
+                app:tint="?attr/colorPrimary"
                 android:padding="4dp"
                 android:contentDescription="Back"/>
 
@@ -40,7 +40,7 @@
                 android:layout_toEndOf="@id/btnBack"
                 android:layout_marginStart="8dp"
                 android:text="Xác nhận đặt vé"
-                android:textColor="#1A202C"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="20sp"
                 android:textStyle="bold"/>
         </RelativeLayout>
@@ -69,7 +69,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -93,7 +93,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Chuyến đi"
-                                android:textColor="#718096"
+                                android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="12sp"/>
 
                             <TextView
@@ -101,7 +101,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="TP. HCM → Đà Lạt"
-                                android:textColor="#1A202C"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
                                 android:layout_marginTop="2dp"/>
@@ -113,8 +113,8 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:layout_centerVertical="true"
-                            android:background="#EAF6EB"
-                            android:textColor="#1B5E20"
+                            android:background="?attr/colorPrimaryContainer"
+                            android:textColor="?attr/colorPrimary"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:paddingHorizontal="10dp"
@@ -156,7 +156,7 @@
                             android:layout_alignTop="@id/ivStartDot"
                             android:layout_alignBottom="@id/ivEndDot"
                             android:layout_marginStart="11dp"
-                            android:background="#CBD5E0"/>
+                            android:background="?attr/colorOutline"/>
 
                         <!-- Departure stop text container -->
                         <LinearLayout
@@ -173,7 +173,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="22:30"
-                                android:textColor="#1A202C"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textSize="14sp"
                                 android:textStyle="bold"/>
 
@@ -182,7 +182,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="Bến xe Miền Đông mới"
-                                android:textColor="#718096"
+                                android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="13sp"
                                 android:layout_marginTop="2dp"/>
                         </LinearLayout>
@@ -204,7 +204,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="05:30 (+1 ngày)"
-                                android:textColor="#1A202C"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textSize="14sp"
                                 android:textStyle="bold"/>
 
@@ -213,7 +213,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 tools:text="Văn phòng Đà Lạt (01 Tô Hiến Thành)"
-                                android:textColor="#718096"
+                                android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="13sp"
                                 android:layout_marginTop="2dp"/>
                         </LinearLayout>
@@ -229,7 +229,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -249,14 +249,14 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_steering_wheel"
-                            app:tint="@color/md_theme_light_primary"
+                            app:tint="?attr/colorPrimary"
                             android:layout_marginEnd="8dp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Thông tin ghế"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"
                             android:textStyle="bold"/>
                     </LinearLayout>
@@ -267,10 +267,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         tools:text="Ghế: A02, A03"
-                        android:textColor="#2D3748"
+                        android:textColor="?attr/colorOnSurface"
                         android:textSize="15sp"
                         android:textStyle="bold"
-                        android:background="#F7F8FA"
+                        android:background="?attr/colorSurface"
                         android:padding="12dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -283,7 +283,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -303,14 +303,14 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_person"
-                            app:tint="@color/md_theme_light_primary"
+                            app:tint="?attr/colorPrimary"
                             android:layout_marginEnd="8dp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Hành khách đặt vé"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"
                             android:textStyle="bold"/>
                     </LinearLayout>
@@ -320,7 +320,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="Nguyễn Văn A"
-                        android:textColor="#1A202C"
+                        android:textColor="?attr/colorOnSurface"
                         android:textSize="15sp"
                         android:textStyle="bold"/>
 
@@ -329,7 +329,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="+84 987 654 321"
-                        android:textColor="#718096"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp"
                         android:layout_marginTop="2dp"/>
 
@@ -338,7 +338,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="example@email.com"
-                        android:textColor="#718096"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp"
                         android:layout_marginTop="2dp"/>
                 </LinearLayout>
@@ -352,7 +352,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E2E8F0"
+                app:strokeColor="?attr/colorOutline"
                 app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
@@ -365,7 +365,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Chi tiết thanh toán"
-                        android:textColor="#1A202C"
+                        android:textColor="?attr/colorOnSurface"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="12dp"/>
@@ -380,7 +380,7 @@
                             android:id="@+id/tvFareBreakdownLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="#718096"
+                            android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="14sp"
                             tools:text="Giá vé (x2)"/>
 
@@ -389,7 +389,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"
                             tools:text="500.000đ"/>
                     </RelativeLayout>
@@ -404,7 +404,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Phí dịch vụ"
-                            android:textColor="#718096"
+                            android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="14sp"/>
 
                         <TextView
@@ -412,7 +412,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="0đ"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"/>
                     </RelativeLayout>
 
@@ -420,7 +420,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="#E2E8F0"
+                        android:background="?attr/colorOutline"
                         android:layout_marginVertical="10dp"/>
 
                     <!-- Total row -->
@@ -432,7 +432,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Tổng cộng"
-                            android:textColor="#1A202C"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="14sp"
                             android:textStyle="bold"/>
 
@@ -441,7 +441,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
-                            android:textColor="@color/md_theme_light_primary"
+                            android:textColor="?attr/colorPrimary"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             tools:text="500.000đ"/>
@@ -479,7 +479,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="02 Vé Người lớn"
-                    android:textColor="#718096"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="13sp"/>
 
                 <TextView
@@ -487,7 +487,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="500.000đ"
-                    android:textColor="#1A202C"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp"
                     android:textStyle="bold"/>
             </LinearLayout>
@@ -503,7 +503,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Thành tiền"
-                    android:textColor="#718096"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="13sp"/>
 
                 <TextView
@@ -511,7 +511,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="500.000đ"
-                    android:textColor="@color/md_theme_light_primary"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold"/>
             </LinearLayout>
@@ -526,7 +526,7 @@
             android:textStyle="bold"
             android:textColor="@color/white"
             app:cornerRadius="12dp"
-            app:backgroundTint="@color/md_theme_light_primary"
+            app:backgroundTint="?attr/colorPrimary"
             app:icon="@drawable/ic_arrow_forward"
             app:iconGravity="textEnd"
             app:iconSize="18dp"

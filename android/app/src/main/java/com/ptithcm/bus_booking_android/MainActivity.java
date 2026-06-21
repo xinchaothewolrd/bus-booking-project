@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvOrigin, tvDestination, tvDate;
     private FloatingActionButton btnSwap;
     private MaterialButton btnSearch;
+    private com.google.android.material.appbar.MaterialToolbar topAppBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
         
         btnSwap = findViewById(R.id.btnSwap);
         btnSearch = findViewById(R.id.btnSearch);
+        topAppBar = findViewById(R.id.topAppBar);
 
         // Set default date to today
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -94,6 +96,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
+        topAppBar.setNavigationOnClickListener(v -> {
+            Toast.makeText(this, "Tính năng menu phụ đang được phát triển", Toast.LENGTH_SHORT).show();
+        });
+
         llOrigin.setOnClickListener(v -> showLocationDialog("Chọn Điểm Đi", tvOrigin));
         llDestination.setOnClickListener(v -> showLocationDialog("Chọn Điểm Đến", tvDestination));
 
