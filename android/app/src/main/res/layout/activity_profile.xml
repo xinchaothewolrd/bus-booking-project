@@ -61,18 +61,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnEditProfile"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="Chỉnh sửa hồ sơ"
-        android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="32dp"
-        app:backgroundTint="@android:color/transparent"
-        app:strokeColor="?attr/colorPrimary"
-        app:strokeWidth="1dp"
-        app:cornerRadius="8dp" />
+
 
     <!-- Menu List -->
     <LinearLayout
@@ -80,6 +69,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_card_white"
+        android:layout_marginTop="32dp"
         android:padding="16dp">
 
         <!-- Personal Info -->

@@ -49,13 +49,13 @@ public class SignupActivity extends AppCompatActivity {
     }
 
     private void handleSignup() {
-        String firstName = edtFirstName.getText().toString().trim();
-        String lastName = edtLastName.getText().toString().trim();
+        String ho = edtFirstName.getText().toString().trim();
+        String ten = edtLastName.getText().toString().trim();
         String email = edtEmail.getText().toString().trim();
         String phone = edtPhone.getText().toString().trim();
         String password = edtPassword.getText().toString().trim();
 
-        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty()) {
+        if (ho.isEmpty() || ten.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -73,7 +73,9 @@ public class SignupActivity extends AppCompatActivity {
         btnSignup.setEnabled(false);
         btnSignup.setText("ĐANG ĐĂNG KÝ...");
 
-        SignupRequest request = new SignupRequest(firstName, lastName, email, phone, password);
+        // Backend builds fullName as: lastName + " " + firstName
+        // So we send 'ten' as firstName and 'ho' as lastName
+        SignupRequest request = new SignupRequest(ten, ho, email, phone, password);
 
         authViewModel.register(request).observe(this, isSuccess -> {
             btnSignup.setEnabled(true);
