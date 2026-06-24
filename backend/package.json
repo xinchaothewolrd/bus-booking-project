@@ -4,13 +4,27 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage"
   },
   "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
+  "jest": {
+    "transform": {
+      "^.+\\.js$": ["babel-jest", { "configFile": "./babel.config.cjs" }]
+    },
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/unit/**/*.test.js"],
+    "collectCoverageFrom": [
+      "src/controllers/**/*.js",
+      "src/middlewares/**/*.js"
+    ],
+    "coverageReporters": ["text", "lcov"]
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -24,6 +38,11 @@
     "sequelize": "^6.37.8"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "@jest/globals": "^30.4.1",
+    "babel-jest": "^30.4.1",
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14"
   }
 }
